@@ -10,7 +10,7 @@ var (
 		prometheus.GaugeOpts{
 			Help:      "Number of connected peers",
 			Name:      "peers_connected",
-			Namespace: "neo-go-evm",
+			Namespace: "neo_go_evm",
 		},
 	)
 
@@ -18,7 +18,7 @@ var (
 		prometheus.GaugeOpts{
 			Help:      "Server and Node versions",
 			Name:      "serv_node_version",
-			Namespace: "neo-go-evm",
+			Namespace: "neo_go_evm",
 		},
 		[]string{"description", "value"},
 	)
@@ -27,7 +27,7 @@ var (
 		prometheus.GaugeOpts{
 			Help:      "Number of available node addresses",
 			Name:      "pool_count",
-			Namespace: "neo-go-evm",
+			Namespace: "neo_go_evm",
 		},
 	)
 
@@ -35,7 +35,7 @@ var (
 		prometheus.GaugeOpts{
 			Help:      "Block queue length",
 			Name:      "block_queue_length",
-			Namespace: "neo-go-evm",
+			Namespace: "neo_go_evm",
 		},
 	)
 )

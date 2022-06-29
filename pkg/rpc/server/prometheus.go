@@ -22,7 +22,7 @@ func init() {
 			prometheus.CounterOpts{
 				Help:      fmt.Sprintf("Number of calls to %s rpc endpoint", call),
 				Name:      fmt.Sprintf("%s_called", call),
-				Namespace: "neo-go-evm",
+				Namespace: "neo_go_evm",
 			},
 		)
 		prometheus.MustRegister(ctr)
