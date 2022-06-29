@@ -1,9 +1,9 @@
 package native
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/core/dao"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/dao"
 )
 
 type InteropContext interface {

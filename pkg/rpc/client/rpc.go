@@ -6,17 +6,17 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/core/state"
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
-	"github.com/ZhangTao1596/neo-go/pkg/encoding/fixedn"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/request"
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/response/result"
-	"github.com/ZhangTao1596/neo-go/pkg/wallet"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/encoding/fixedn"
+	"github.com/neo-ngd/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/rpc/request"
+	"github.com/neo-ngd/neo-go/pkg/rpc/response/result"
+	"github.com/neo-ngd/neo-go/pkg/wallet"
 )
 
 var errNetworkNotInitialized = errors.New("RPC client network is not initialized")

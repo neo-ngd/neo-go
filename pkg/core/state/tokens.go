@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"math/big"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/storage"
-	"github.com/ZhangTao1596/neo-go/pkg/encoding/bigint"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/core/storage"
+	"github.com/neo-ngd/neo-go/pkg/encoding/bigint"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // TokenTransferBatchSize is the maximum number of entries for TokenTransferLog.

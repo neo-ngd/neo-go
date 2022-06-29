@@ -1,6 +1,6 @@
 package payload
 
-import "github.com/ZhangTao1596/neo-go/pkg/io"
+import "github.com/neo-ngd/neo-go/pkg/io"
 
 // ChangeView represents dBFT ChangeView message.
 type ChangeView interface {

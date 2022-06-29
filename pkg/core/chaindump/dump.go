@@ -3,10 +3,10 @@ package chaindump
 import (
 	"fmt"
 
-	"github.com/ZhangTao1596/neo-go/pkg/config"
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // DumperRestorer in the interface to get/add blocks from/to.

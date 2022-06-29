@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // Header holds the base info of a block.

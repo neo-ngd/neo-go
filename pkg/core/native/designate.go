@@ -4,15 +4,15 @@ import (
 	"encoding/binary"
 	"sort"
 
-	"github.com/ZhangTao1596/neo-go/pkg/config"
-	"github.com/ZhangTao1596/neo-go/pkg/core/dao"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native/nativeids"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native/nativenames"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native/noderoles"
-	"github.com/ZhangTao1596/neo-go/pkg/core/state"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/core/dao"
+	"github.com/neo-ngd/neo-go/pkg/core/native/nativeids"
+	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
+	"github.com/neo-ngd/neo-go/pkg/core/native/noderoles"
+	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 )
 
 const (

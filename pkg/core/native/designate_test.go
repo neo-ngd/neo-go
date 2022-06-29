@@ -5,13 +5,13 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/ZhangTao1596/neo-go/pkg/config"
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/core/dao"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native/noderoles"
-	"github.com/ZhangTao1596/neo-go/pkg/core/storage"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/dao"
+	"github.com/neo-ngd/neo-go/pkg/core/native/noderoles"
+	"github.com/neo-ngd/neo-go/pkg/core/storage"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/stretchr/testify/assert"
 )
 

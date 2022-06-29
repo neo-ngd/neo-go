@@ -3,7 +3,7 @@ package payload
 import (
 	"fmt"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/io"
 	"github.com/pkg/errors"
 )
 

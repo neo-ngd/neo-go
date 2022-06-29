@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ZhangTao1596/neo-go/cli/flags"
-	"github.com/ZhangTao1596/neo-go/cli/input"
-	"github.com/ZhangTao1596/neo-go/cli/options"
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/wallet"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/neo-ngd/neo-go/cli/flags"
+	"github.com/neo-ngd/neo-go/cli/input"
+	"github.com/neo-ngd/neo-go/cli/options"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
 )
 

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
-	"github.com/ZhangTao1596/neo-go/pkg/network/payload"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/network/payload"
 )
 
 //go:generate stringer -type=CommandType -output=message_string.go

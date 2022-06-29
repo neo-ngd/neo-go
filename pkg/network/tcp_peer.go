@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
-	"github.com/ZhangTao1596/neo-go/pkg/network/capability"
-	"github.com/ZhangTao1596/neo-go/pkg/network/payload"
+	"github.com/neo-ngd/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/network/capability"
+	"github.com/neo-ngd/neo-go/pkg/network/payload"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )

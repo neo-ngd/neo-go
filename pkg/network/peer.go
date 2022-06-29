@@ -3,7 +3,7 @@ package network
 import (
 	"net"
 
-	"github.com/ZhangTao1596/neo-go/pkg/network/payload"
+	"github.com/neo-ngd/neo-go/pkg/network/payload"
 )
 
 type Peer interface {

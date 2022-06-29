@@ -1,7 +1,7 @@
 package dbft
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/dbft/payload"
+	"github.com/neo-ngd/neo-go/pkg/dbft/payload"
 	"github.com/spaolacci/murmur3"
 )
 

@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"math/big"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 type writeCounter int

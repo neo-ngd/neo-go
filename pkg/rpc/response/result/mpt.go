@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // StateHeight is a result of getstateheight RPC.

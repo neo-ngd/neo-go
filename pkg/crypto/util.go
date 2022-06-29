@@ -4,9 +4,9 @@ import (
 	"errors"
 	"sort"
 
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 var (

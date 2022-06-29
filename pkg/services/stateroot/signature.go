@@ -3,12 +3,12 @@ package stateroot
 import (
 	"sync"
 
-	"github.com/ZhangTao1596/neo-go/pkg/consensus"
-	"github.com/ZhangTao1596/neo-go/pkg/core/state"
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
-	"github.com/ZhangTao1596/neo-go/pkg/network/payload"
+	"github.com/neo-ngd/neo-go/pkg/consensus"
+	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/crypto"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/network/payload"
 )
 
 type (

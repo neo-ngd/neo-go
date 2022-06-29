@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 )
 
 // TransactionOutputRaw is used as a wrapper to represents

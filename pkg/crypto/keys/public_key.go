@@ -11,13 +11,13 @@ import (
 	"math/big"
 	"sort"
 
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/encoding/address"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/encoding/address"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // coordLen is the number of bytes in serialized X or Y coordinate.

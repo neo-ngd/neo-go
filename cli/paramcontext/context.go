@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/wallet"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/wallet"
 )
 
 // validUntilBlockIncrement is the number of extra blocks to add to an exported transaction.

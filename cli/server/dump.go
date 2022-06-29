@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/storage"
+	"github.com/neo-ngd/neo-go/pkg/core/storage"
 )
 
 type dump []blockDump

@@ -3,11 +3,11 @@ package consensus
 import (
 	"errors"
 
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
-	"github.com/ZhangTao1596/neo-go/pkg/dbft/payload"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
-	npayload "github.com/ZhangTao1596/neo-go/pkg/network/payload"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/dbft/payload"
+	"github.com/neo-ngd/neo-go/pkg/io"
+	npayload "github.com/neo-ngd/neo-go/pkg/network/payload"
 )
 
 type (

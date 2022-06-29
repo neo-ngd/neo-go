@@ -6,7 +6,7 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"golang.org/x/term"
 )
 

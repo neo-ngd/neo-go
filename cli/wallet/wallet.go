@@ -9,14 +9,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ZhangTao1596/neo-go/cli/flags"
-	"github.com/ZhangTao1596/neo-go/cli/input"
-	"github.com/ZhangTao1596/neo-go/cli/options"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
-	"github.com/ZhangTao1596/neo-go/pkg/encoding/address"
-	"github.com/ZhangTao1596/neo-go/pkg/wallet"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/neo-ngd/neo-go/cli/flags"
+	"github.com/neo-ngd/neo-go/cli/input"
+	"github.com/neo-ngd/neo-go/cli/options"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/encoding/address"
+	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
 )
 

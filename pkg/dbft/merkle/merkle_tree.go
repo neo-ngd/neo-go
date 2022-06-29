@@ -1,8 +1,8 @@
 package merkle
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 )
 
 type (

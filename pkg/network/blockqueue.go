@@ -3,7 +3,7 @@ package network
 import (
 	"sync"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )

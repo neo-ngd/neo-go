@@ -3,8 +3,8 @@ package address
 import (
 	"errors"
 
-	"github.com/ZhangTao1596/neo-go/pkg/encoding/base58"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/encoding/base58"
 )
 
 var Prefix byte = 0x32

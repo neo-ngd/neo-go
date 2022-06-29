@@ -3,10 +3,10 @@ package evm
 import (
 	"math/big"
 
-	"github.com/ZhangTao1596/neo-go/pkg/config"
-	"github.com/ZhangTao1596/neo-go/pkg/evm/vm"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/evm/vm"
 )
 
 const TestGas uint64 = 2000000000

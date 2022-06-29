@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/storage"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
-	"github.com/ZhangTao1596/neo-go/pkg/util/slice"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/core/storage"
+	"github.com/neo-ngd/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/util/slice"
 )
 
 var (

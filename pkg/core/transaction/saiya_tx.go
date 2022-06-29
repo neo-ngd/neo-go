@@ -6,10 +6,10 @@ import (
 	"math/big"
 	"math/rand"
 
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/io"
 	"golang.org/x/crypto/sha3"
 )
 

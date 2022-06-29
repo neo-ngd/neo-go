@@ -3,10 +3,10 @@ package state
 import (
 	"encoding/binary"
 
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 func CreateContractHash(sender common.Address, nonce uint64, codeHash common.Hash) common.Hash {

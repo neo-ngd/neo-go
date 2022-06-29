@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
-	"github.com/ZhangTao1596/neo-go/pkg/util/slice"
+	"github.com/neo-ngd/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/util/slice"
 	"go.etcd.io/bbolt"
 )
 

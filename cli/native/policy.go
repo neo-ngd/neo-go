@@ -6,10 +6,10 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/ZhangTao1596/neo-go/cli/options"
-	"github.com/ZhangTao1596/neo-go/cli/wallet"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/cli/options"
+	"github.com/neo-ngd/neo-go/cli/wallet"
+	"github.com/neo-ngd/neo-go/pkg/core/native"
 	"github.com/urfave/cli"
 )
 

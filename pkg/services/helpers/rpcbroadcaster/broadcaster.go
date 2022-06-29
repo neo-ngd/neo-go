@@ -3,7 +3,7 @@ package rpcbroadcaster
 import (
 	"time"
 
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/request"
+	"github.com/neo-ngd/neo-go/pkg/rpc/request"
 	"go.uber.org/zap"
 )
 

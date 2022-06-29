@@ -1,8 +1,8 @@
 package wallet
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/encoding/address"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/encoding/address"
 )
 
 // Token represents imported token contract.

@@ -3,18 +3,18 @@ package blockchainer
 import (
 	"math/big"
 
-	"github.com/ZhangTao1596/neo-go/pkg/config"
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/core/filters"
-	"github.com/ZhangTao1596/neo-go/pkg/core/interop"
-	"github.com/ZhangTao1596/neo-go/pkg/core/mempool"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native"
-	"github.com/ZhangTao1596/neo-go/pkg/core/state"
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/filters"
+	"github.com/neo-ngd/neo-go/pkg/core/interop"
+	"github.com/neo-ngd/neo-go/pkg/core/mempool"
+	"github.com/neo-ngd/neo-go/pkg/core/native"
+	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 )
 
 // Blockchainer is an interface that abstract the implementation

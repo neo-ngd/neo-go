@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 const (

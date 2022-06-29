@@ -1,9 +1,9 @@
 package config
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/core/storage"
-	"github.com/ZhangTao1596/neo-go/pkg/network/metrics"
-	"github.com/ZhangTao1596/neo-go/pkg/rpc"
+	"github.com/neo-ngd/neo-go/pkg/core/storage"
+	"github.com/neo-ngd/neo-go/pkg/network/metrics"
+	"github.com/neo-ngd/neo-go/pkg/rpc"
 )
 
 // ApplicationConfiguration config specific to the node.

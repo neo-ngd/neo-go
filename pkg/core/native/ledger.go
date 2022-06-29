@@ -3,11 +3,11 @@ package native
 import (
 	"encoding/binary"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/dao"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native/nativeids"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native/nativenames"
-	"github.com/ZhangTao1596/neo-go/pkg/core/state"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/core/dao"
+	"github.com/neo-ngd/neo-go/pkg/core/native/nativeids"
+	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
+	"github.com/neo-ngd/neo-go/pkg/core/state"
 )
 
 const (

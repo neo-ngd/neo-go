@@ -3,7 +3,7 @@ package payload
 import (
 	"time"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // Ping payload for ping/pong payloads.

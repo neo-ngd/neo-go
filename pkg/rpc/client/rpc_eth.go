@@ -3,12 +3,12 @@ package client
 import (
 	"math/big"
 
-	"github.com/ZhangTao1596/neo-go/pkg/core/filters"
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/request"
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/response/result"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/neo-ngd/neo-go/pkg/core/filters"
+	"github.com/neo-ngd/neo-go/pkg/rpc/request"
+	"github.com/neo-ngd/neo-go/pkg/rpc/response/result"
 )
 
 func (c *Client) Web3_ClientVersion() (string, error) {

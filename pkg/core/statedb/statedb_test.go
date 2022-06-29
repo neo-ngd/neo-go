@@ -3,11 +3,11 @@ package statedb
 import (
 	"testing"
 
-	"github.com/ZhangTao1596/neo-go/pkg/config"
-	"github.com/ZhangTao1596/neo-go/pkg/core/dao"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native"
-	"github.com/ZhangTao1596/neo-go/pkg/core/storage"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/core/dao"
+	"github.com/neo-ngd/neo-go/pkg/core/native"
+	"github.com/neo-ngd/neo-go/pkg/core/storage"
 	"github.com/stretchr/testify/assert"
 )
 

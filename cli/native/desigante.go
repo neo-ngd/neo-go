@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ZhangTao1596/neo-go/cli/options"
-	"github.com/ZhangTao1596/neo-go/cli/wallet"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native"
-	"github.com/ZhangTao1596/neo-go/pkg/core/native/noderoles"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/cli/options"
+	"github.com/neo-ngd/neo-go/cli/wallet"
+	"github.com/neo-ngd/neo-go/pkg/core/native"
+	"github.com/neo-ngd/neo-go/pkg/core/native/noderoles"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/urfave/cli"
 )
 

@@ -1,8 +1,8 @@
 package payload
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/io"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // MaxMPTHashesCount is the maximum number of requested MPT nodes hashes.

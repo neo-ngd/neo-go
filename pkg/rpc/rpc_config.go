@@ -1,8 +1,8 @@
 package rpc
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/encoding/fixedn"
-	"github.com/ZhangTao1596/neo-go/pkg/wallet"
+	"github.com/neo-ngd/neo-go/pkg/encoding/fixedn"
+	"github.com/neo-ngd/neo-go/pkg/wallet"
 )
 
 type (

@@ -1,4 +1,4 @@
-module github.com/ZhangTao1596/neo-go
+module github.com/neo-ngd/neo-go
 
 go 1.18
 

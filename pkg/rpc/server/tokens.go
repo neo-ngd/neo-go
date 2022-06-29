@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/response/result"
+	"github.com/neo-ngd/neo-go/pkg/rpc/response/result"
 )
 
 // tokenTransfers is a generic type used to represent NEP-11 and NEP-17 transfers.

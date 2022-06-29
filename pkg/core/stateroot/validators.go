@@ -1,8 +1,8 @@
 package stateroot
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/hash"
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 )
 
 // UpdateStateValidators updates list of state validator keys.

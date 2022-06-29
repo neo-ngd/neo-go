@@ -1,8 +1,8 @@
 package consensus
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/dbft/payload"
-	"github.com/ZhangTao1596/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/dbft/payload"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // recoveryRequest represents dBFT RecoveryRequest message.

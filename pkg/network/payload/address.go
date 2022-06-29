@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/ZhangTao1596/neo-go/pkg/io"
-	"github.com/ZhangTao1596/neo-go/pkg/network/capability"
+	"github.com/neo-ngd/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/network/capability"
 )
 
 // MaxAddrsCount is the maximum number of addresses that could be packed into

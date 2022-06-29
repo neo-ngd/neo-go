@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/ZhangTao1596/neo-go/pkg/network/payload"
+	"github.com/neo-ngd/neo-go/pkg/network/payload"
 	"github.com/pierrec/lz4"
 )
 

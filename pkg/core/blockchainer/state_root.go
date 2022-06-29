@@ -1,9 +1,9 @@
 package blockchainer
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/core/state"
-	"github.com/ZhangTao1596/neo-go/pkg/core/storage"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/core/storage"
 )
 
 // StateRoot represents local state root module.

@@ -1,6 +1,6 @@
 package payload
 
-import "github.com/ZhangTao1596/neo-go/pkg/io"
+import "github.com/neo-ngd/neo-go/pkg/io"
 
 // MaxSize is maximum payload size in decompressed form.
 const MaxSize = 0x02000000

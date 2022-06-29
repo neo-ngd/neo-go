@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ZhangTao1596/neo-go/pkg/crypto/rfc6979"
+	"github.com/neo-ngd/neo-go/pkg/crypto/rfc6979"
 )
 
 type ecdsaFixture struct {

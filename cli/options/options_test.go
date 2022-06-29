@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ZhangTao1596/neo-go/pkg/config/netmode"
+	"github.com/neo-ngd/neo-go/pkg/config/netmode"
 
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli"

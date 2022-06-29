@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ZhangTao1596/neo-go/pkg/network/capability"
+	"github.com/neo-ngd/neo-go/pkg/network/capability"
 )
 
 const (

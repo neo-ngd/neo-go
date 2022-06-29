@@ -1,6 +1,6 @@
 package mempool
 
-import "github.com/ZhangTao1596/neo-go/pkg/core/mempoolevent"
+import "github.com/neo-ngd/neo-go/pkg/core/mempoolevent"
 
 // RunSubscriptions runs subscriptions goroutine if mempool subscriptions are enabled.
 // You should manually free the resources by calling StopSubscriptions on mempool shutdown.

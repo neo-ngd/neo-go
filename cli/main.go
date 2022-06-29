@@ -3,13 +3,13 @@ package main
 import (
 	"os"
 
-	"github.com/ZhangTao1596/neo-go/cli/native"
-	"github.com/ZhangTao1596/neo-go/cli/query"
-	"github.com/ZhangTao1596/neo-go/cli/server"
-	"github.com/ZhangTao1596/neo-go/cli/utils"
-	"github.com/ZhangTao1596/neo-go/cli/vm"
-	"github.com/ZhangTao1596/neo-go/cli/wallet"
-	"github.com/ZhangTao1596/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/cli/native"
+	"github.com/neo-ngd/neo-go/cli/query"
+	"github.com/neo-ngd/neo-go/cli/server"
+	"github.com/neo-ngd/neo-go/cli/utils"
+	"github.com/neo-ngd/neo-go/cli/vm"
+	"github.com/neo-ngd/neo-go/cli/wallet"
+	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/urfave/cli"
 )
 

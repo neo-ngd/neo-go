@@ -1,12 +1,12 @@
 package server
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/core/block"
-	"github.com/ZhangTao1596/neo-go/pkg/core/transaction"
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/request"
-	"github.com/ZhangTao1596/neo-go/pkg/rpc/response"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/gorilla/websocket"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/rpc/request"
+	"github.com/neo-ngd/neo-go/pkg/rpc/response"
 	"go.uber.org/atomic"
 )
 

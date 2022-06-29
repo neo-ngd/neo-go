@@ -1,7 +1,7 @@
 package fee
 
 import (
-	"github.com/ZhangTao1596/neo-go/pkg/io"
+	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 // ECDSAVerifyPrice is a gas price of a single verification.
