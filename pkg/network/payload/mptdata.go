@@ -3,10 +3,10 @@ package payload
 import (
 	"errors"
 
-	"github.com/nspcc-dev/neo-go/pkg/io"
+	"github.com/ZhangTao1596/neo-go/pkg/io"
 )
 
-// MPTData represents a set of serialized MPT nodes.
+// MPTData represents the set of serialized MPT nodes.
 type MPTData struct {
 	Nodes [][]byte
 }

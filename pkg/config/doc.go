@@ -1,4 +1,4 @@
 /*
-Package config contains NeoGo node configuration definition.
+Package config contains neo-go-evm node configuration definition.
 */
 package config
