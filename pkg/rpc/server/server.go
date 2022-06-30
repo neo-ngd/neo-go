@@ -31,7 +31,6 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/storage"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
-	"github.com/neo-ngd/neo-go/pkg/encoding/address"
 	"github.com/neo-ngd/neo-go/pkg/evm"
 	"github.com/neo-ngd/neo-go/pkg/io"
 	"github.com/neo-ngd/neo-go/pkg/network"
@@ -952,11 +951,7 @@ func (s *Server) eth_getBlockByHash(params request.Params) (interface{}, *respon
 }
 
 func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *response.Error) {
-	param0 := params.Value(0)
-	if param0 == nil {
-		return nil, response.ErrInvalidParams
-	}
-	sh, err := param0.GetString()
+	sh, err := params.Value(0).GetString()
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
@@ -1272,7 +1267,7 @@ func (s *Server) validateAddress(reqParams request.Params) (interface{}, *respon
 
 	return result.ValidateAddress{
 		Address: reqParams.Value(0),
-		IsValid: validateAddress(param),
+		IsValid: common.IsHexAddress(param),
 	}, nil
 }
 
@@ -2103,12 +2098,4 @@ func (s *Server) writeHTTPServerResponse(r *request.Request, w http.ResponseWrit
 				zap.String("err", err.Error()))
 		}
 	}
-}
-
-func validateAddress(addr interface{}) bool {
-	if addr, ok := addr.(string); ok {
-		_, err := address.Base58ToAddress(addr)
-		return err == nil
-	}
-	return false
 }

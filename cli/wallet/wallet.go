@@ -15,7 +15,6 @@ import (
 	"github.com/neo-ngd/neo-go/cli/input"
 	"github.com/neo-ngd/neo-go/cli/options"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
-	"github.com/neo-ngd/neo-go/pkg/encoding/address"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
 )
@@ -446,7 +445,7 @@ func dumpKeys(ctx *cli.Context) error {
 		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString(acc.PublicKey))
 		hasPrinted = true
 		if addrFlag.IsSet {
-			return cli.NewExitError(fmt.Errorf("unknown script type for address %s", address.AddressToBase58(addrFlag.Address())), 1)
+			return cli.NewExitError(fmt.Errorf("unknown script type for address %s", addrFlag.Address()), 1)
 		}
 	}
 	return nil
