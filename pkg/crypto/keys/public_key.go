@@ -195,11 +195,10 @@ func (p *PublicKey) getBytes(compressed bool) []byte {
 	if p.IsInfinity() {
 		return []byte{0x00}
 	}
-	pubBytes := elliptic.Marshal(p.Curve, p.X, p.Y)
 	if compressed {
-		return crypto.Keccak256(pubBytes[1:])
+		return elliptic.MarshalCompressed(p.Curve, p.X, p.Y)
 	}
-	return pubBytes
+	return elliptic.Marshal(p.Curve, p.X, p.Y)
 }
 
 // Bytes returns byte array representation of the public key in compressed
