@@ -140,7 +140,7 @@ type PublicKey ecdsa.PublicKey
 
 // Equal returns true in case public keys are equal.
 func (p *PublicKey) Equal(key *PublicKey) bool {
-	return p.X.Cmp(key.X) == 0 && p.Y.Cmp(key.Y) == 0
+	return p.Curve == key.Curve && p.X.Cmp(key.X) == 0 && p.Y.Cmp(key.Y) == 0
 }
 
 // Cmp compares two keys.
@@ -195,11 +195,11 @@ func (p *PublicKey) getBytes(compressed bool) []byte {
 	if p.IsInfinity() {
 		return []byte{0x00}
 	}
-
+	pubBytes := elliptic.Marshal(p.Curve, p.X, p.Y)
 	if compressed {
-		return elliptic.MarshalCompressed(p.Curve, p.X, p.Y)
+		return crypto.Keccak256(pubBytes[1:])
 	}
-	return elliptic.Marshal(p.Curve, p.X, p.Y)
+	return pubBytes
 }
 
 // Bytes returns byte array representation of the public key in compressed
