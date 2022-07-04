@@ -186,7 +186,7 @@ func (t *Transaction) Hash() common.Hash {
 
 func (t Transaction) SignHash(chainId uint64) common.Hash {
 	if t.Type == EthLegacyTxType {
-		signer := types.NewEIP2930Signer(big.NewInt(int64(chainId)))
+		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
 		return signer.Hash(types.NewTx(t.LegacyTx))
 	} else {
 		return t.Hash()
@@ -239,7 +239,7 @@ func (t *Transaction) DecodeBinary(r *io.BinReader) {
 func (t *Transaction) Verify(chainId uint64) error {
 	switch t.Type {
 	case EthLegacyTxType:
-		signer := types.NewEIP2930Signer(big.NewInt(int64(chainId)))
+		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
 		from, err := signer.Sender(types.NewTx(t.LegacyTx))
 		if err != nil {
 			return err
@@ -256,7 +256,7 @@ func (t *Transaction) Verify(chainId uint64) error {
 func (t *Transaction) WithSignature(chainId uint64, sig []byte) error {
 	switch t.Type {
 	case EthLegacyTxType:
-		signer := types.NewEIP2930Signer(big.NewInt(int64(chainId)))
+		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
 		r, s, v, err := signer.SignatureValues(types.NewTx(t.LegacyTx), sig)
 		if err != nil {
 			return err
