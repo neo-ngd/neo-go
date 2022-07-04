@@ -1140,6 +1140,7 @@ func (s *Server) eth_getLogs(params request.Params) (interface{}, *response.Erro
 	}
 	return logs, nil
 }
+
 // -- end eth api.
 
 func (s *Server) getBestBlockHash(_ request.Params) (interface{}, *response.Error) {
@@ -2072,13 +2073,13 @@ func (s *Server) writeHTTPServerResponse(r *request.Request, w http.ResponseWrit
 	resp.RunForErrors(func(jsonErr *response.Error) {
 		s.logRequestError(r, jsonErr)
 	})
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if r.In != nil {
 		resp := resp.(response.Abstract)
 		if resp.Error != nil {
 			w.WriteHeader(resp.Error.HTTPCode)
 		}
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	if s.config.EnableCORSWorkaround {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
