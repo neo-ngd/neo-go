@@ -157,12 +157,12 @@ func (c *Client) GetBlockHeaderVerbose(hash common.Hash) (*result.Header, error)
 }
 
 // GetBlockSysFee returns the system fees of the block, based on the specified index.
-func (c *Client) GetBlockSysFee(index uint32) (fixedn.Fixed8, error) {
+func (c *Client) GetBlockGas(index uint32) (fixedn.Fixed8, error) {
 	var (
 		params = request.NewRawParams(index)
 		resp   fixedn.Fixed8
 	)
-	if err := c.performRequest("getblocksysfee", params, &resp); err != nil {
+	if err := c.performRequest("getblockgas", params, &resp); err != nil {
 		return resp, err
 	}
 	return resp, nil

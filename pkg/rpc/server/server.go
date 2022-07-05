@@ -136,7 +136,7 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"getblockhash":         (*Server).getBlockHash,
 	"getblockheader":       (*Server).getBlockHeader,
 	"getblockheadercount":  (*Server).getBlockHeaderCount,
-	"getblocksysfee":       (*Server).getBlockSysFee,
+	"getblocksysfee":       (*Server).getBlockGas,
 	"getcommittee":         (*Server).getCommittee,
 	"getcommitteeaddress":  (*Server).getCommitteeAddress,
 	"getconnectioncount":   (*Server).getConnectionCount,
@@ -1596,20 +1596,17 @@ func (s *Server) getrawtransaction(reqParams request.Params) (interface{}, *resp
 		_header := s.chain.GetHeaderHash(int(height))
 		header, err := s.chain.GetHeader(_header)
 		if err != nil {
-			return nil, response.NewRPCError("Failed to get header for the transaction", err.Error(), err)
+			return nil, response.NewRPCError("Failed to get block header for the transaction", err.Error(), err)
 		}
 		aer, err := s.chain.GetReceipt(txHash)
 		if err != nil {
-			return nil, response.NewRPCError("Failed to get application log for the transaction", err.Error(), err)
-		}
-		if aer == nil {
-			return nil, response.NewRPCError("Application log for the transaction is empty", "", nil)
+			return nil, response.NewRPCError("Failed to get receipt for the transaction", err.Error(), err)
 		}
 		return result.NewTransactionOutputRaw(tx, header, aer), nil
 	}
 	b, err := tx.Bytes()
 	if err != nil {
-		return nil, response.NewInternalServerError("failed encode tx", err)
+		return nil, response.NewInternalServerError(fmt.Sprintf("failed encode tx: %s", err), err)
 	}
 	return b, nil
 }
@@ -1651,7 +1648,7 @@ func (s *Server) getNativeContracts(_ request.Params) (interface{}, *response.Er
 }
 
 // getBlockSysFee returns the system fees of the block, based on the specified index.
-func (s *Server) getBlockSysFee(reqParams request.Params) (interface{}, *response.Error) {
+func (s *Server) getBlockGas(reqParams request.Params) (interface{}, *response.Error) {
 	num, err := s.blockHeightFromParam(reqParams.Value(0))
 	if err != nil {
 		return 0, response.NewRPCError("Invalid height", "", nil)
@@ -1663,12 +1660,12 @@ func (s *Server) getBlockSysFee(reqParams request.Params) (interface{}, *respons
 		return 0, response.NewRPCError(errBlock.Error(), "", nil)
 	}
 
-	var blockSysFee uint64
+	var blockGas uint64
 	for _, tx := range block.Transactions {
-		blockSysFee += tx.Gas()
+		blockGas += tx.Gas()
 	}
 
-	return blockSysFee, nil
+	return blockGas, nil
 }
 
 // getBlockHeader returns the corresponding block header information according to the specified script hash.
@@ -1758,11 +1755,10 @@ func (s *Server) sendrawtransaction(reqParams request.Params) (interface{}, *res
 	}
 	byteTx, err := reqParams[0].GetBytesHex()
 	if err != nil {
-		return nil, response.NewInvalidParamsError("not hex", err)
+		return nil, response.NewInvalidParamsError(err.Error(), err)
 	}
 	NeoTx, err := transaction.NewNeoTxFromBytes(byteTx)
 	if err != nil {
-		fmt.Println(err)
 		return nil, response.NewInvalidParamsError("can't decode transaction", err)
 	}
 	tx := transaction.NewTx(NeoTx)
