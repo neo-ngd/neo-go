@@ -26,15 +26,11 @@ type (
 		// MaxBlockSize is the maximum block size in bytes.
 		MaxBlockSize uint32 `yaml:"MaxBlockSize"`
 		// MaxBlockSystemFee is the maximum overall system fee per block.
-		MaxBlockSystemFee uint64 `yaml:"MaxBlockSystemFee"`
+		MaxBlockGas uint64 `yaml:"MaxBlockGas"`
 		// MaxTraceableBlocks is the length of the chain accessible to smart contracts.
 		MaxTraceableBlocks uint32 `yaml:"MaxTraceableBlocks"`
 		// MaxTransactionsPerBlock is the maximum amount of transactions per block.
 		MaxTransactionsPerBlock uint16 `yaml:"MaxTransactionsPerBlock"`
-		// MaxValidUntilBlockIncrement is the upper increment size of blockchain height in blocks
-		// exceeding that a transaction should fail validation. It is set to estimated daily number
-		// of blocks with 15s interval.
-		MaxValidUntilBlockIncrement uint32 `yaml:"MaxValidUntilBlockIncrement"`
 		// SaveStorageBatch enables storage batch saving before every persist.
 		SaveStorageBatch  bool     `yaml:"SaveStorageBatch"`
 		SecondsPerBlock   int      `yaml:"SecondsPerBlock"`

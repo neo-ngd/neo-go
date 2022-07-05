@@ -34,7 +34,7 @@ func NewEVMBlockContext(block *block.Block,
 			sdb.AddBalance(to, amount)
 		},
 		Coinbase:    coinbase,
-		GasLimit:    uint64(protocolSettings.MaxBlockSystemFee),
+		GasLimit:    uint64(protocolSettings.MaxBlockGas),
 		BlockNumber: big.NewInt(int64(block.Index)),
 		Time:        big.NewInt(int64(block.Timestamp)),
 		Difficulty:  big.NewInt(0),
