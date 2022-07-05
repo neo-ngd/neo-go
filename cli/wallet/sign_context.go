@@ -3,6 +3,8 @@ package wallet
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/neo-ngd/neo-go/cli/input"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
@@ -28,10 +30,10 @@ func (sc *SignContext) Check() error {
 	if err != nil {
 		return err
 	}
-	if len(sc.Sigs) != m {
+	sc.PublicKeys = *pks
+	if len(sc.Sigs) != len(sc.PublicKeys) {
 		return errors.New("invalid sigs count")
 	}
-	sc.PublicKeys = *pks
 	sc.M = m
 	for i, sig := range sc.Sigs {
 		if len(sig) > 0 {
@@ -86,7 +88,7 @@ type signContextJson struct {
 	Sigs    []hexutil.Bytes   `json:"signatures"`
 }
 
-func (sc *SignContext) MarshalJSON() ([]byte, error) {
+func (sc SignContext) MarshalJSON() ([]byte, error) {
 	scj := &signContextJson{
 		ChainID: hexutil.Uint64(sc.ChainID),
 		Tx:      sc.Tx,
@@ -117,12 +119,22 @@ func (sc *SignContext) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func Sign(acc *wallet.Account, context *SignContext) error {
-	for i, p := range context.PublicKeys {
-		if p.Address() == acc.Address {
-			sig := acc.PrivateKey().SignHashable(context.ChainID, &context.Tx)
-			context.Sigs[i] = sig
+func Sign(wall *wallet.Wallet, context *SignContext) error {
+	for _, acc := range wall.Accounts {
+		for i, p := range context.PublicKeys {
+			if p.Address() == acc.Address {
+				pass, err := input.ReadPassword(fmt.Sprintf("Enter password for %s > ", acc.Address))
+				if err != nil {
+					return errors.New(fmt.Sprintf("error reading password: %w", err))
+				}
+				err = acc.Decrypt(pass, wall.Scrypt)
+				if err != nil {
+					return errors.New(fmt.Sprintf("unable to decrypt account: %s", acc.Address))
+				}
+				sig := acc.PrivateKey().SignHashable(context.ChainID, &context.Tx)
+				context.Sigs[i] = sig
+			}
 		}
 	}
-	return errors.New("account is not a public key in sign context")
+	return nil
 }

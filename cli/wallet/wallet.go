@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"io"
 	"os"
 	"strings"
@@ -182,6 +183,17 @@ func NewCommands() []cli.Command {
 				Name:   "sign",
 				Usage:  "sign sign_context",
 				Action: sign,
+				Flags: []cli.Flag{
+					WalletPathFlag,
+					cli.StringFlag{
+						Name:  "rpc-endpoint" + ", r",
+						Usage: "RPC node address",
+					},
+					cli.StringFlag{
+						Name:  "context, c",
+						Usage: "sign a context",
+					},
+				},
 			},
 		},
 	}}
@@ -554,5 +566,46 @@ func fmtPrintWallet(w io.Writer, wall *wallet.Wallet) {
 }
 
 func sign(ctx *cli.Context) error {
+	wall, err := ReadWallet(ctx.String("wallet"))
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	defer wall.Close()
+
+	signContext := new(SignContext)
+	contextStr := string(ctx.String("context"))
+  	err = signContext.UnmarshalJSON([]byte(contextStr))
+	if err != nil {
+		return cli.NewExitError("sign context invalid", 1)
+	}
+
+	err = Sign(wall, signContext)
+	if err != nil {
+		return cli.NewExitError("sign context error", 1)
+	}
+	t := &signContext.Tx
+	tx := transaction.NewTx(t)
+	if signContext.IsComplete() {
+		tx = signContext.CreateTx()
+	} else {
+		b, err := json.Marshal(*signContext)
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("failed marshal sign context json: %w", err), 1)
+		}
+		fmt.Fprintf(ctx.App.Writer, "SignContext: %s\n", string(b))
+		return nil
+	}
+	b, err := tx.Bytes()
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed encode tx: %w", err), 1)
+	}
+	gctx, cancel := options.GetTimeoutContext(ctx)
+	defer cancel()
+	c, err := options.GetRPCClient(gctx, ctx)
+	hash, err := c.SendRawTransaction(b[1:])
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed relay tx: %w", err), 1)
+	}
+	fmt.Fprintf(ctx.App.Writer, "TxHash: %s\n", hash)
 	return nil
 }

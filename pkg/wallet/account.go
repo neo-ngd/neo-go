@@ -49,7 +49,7 @@ func (a *Account) SignTx(chainId uint64, t *transaction.Transaction) error {
 	case transaction.NeoTxType:
 		sig := a.privateKey.SignHashable(chainId, t)
 		witness := transaction.Witness{
-			VerificationScript: keys.PublicKey(*a.privateKey.PublicKey()).CreateVerificationScript(),
+			VerificationScript: (*a.privateKey.PublicKey()).CreateVerificationScript(),
 			InvocationScript:   sig,
 		}
 		t.WithWitness(witness)
