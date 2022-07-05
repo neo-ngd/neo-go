@@ -41,12 +41,12 @@ const (
 	headerBatchCount = 2000
 	version          = "0.2.5"
 
-	defaultInitialGAS                   = 52000000 //wei
+	defaultInitialGAS                      = 52000000 //wei
 	defaultGCPeriod                        = 10000
 	defaultMemPoolSize                     = 50000
 	defaultP2PNotaryRequestPayloadPoolSize = 1000
 	defaultMaxBlockSize                    = 262144
-	defaultMaxBlockSystemFee               = 900000000000
+	defaultMaxBlockGas                     = 90000000000
 	defaultMaxTraceableBlocks              = 2102400 // 1 year of 15s blocks
 	defaultMaxTransactionsPerBlock         = 512
 	// HeaderVerificationGasLimit is the maximum amount of GAS for block header verification.
@@ -193,9 +193,9 @@ func NewBlockchain(s storage.Store, cfg config.ProtocolConfiguration, log *zap.L
 		cfg.MaxBlockSize = defaultMaxBlockSize
 		log.Info("MaxBlockSize is not set or wrong, setting default value", zap.Uint32("MaxBlockSize", cfg.MaxBlockSize))
 	}
-	if cfg.MaxBlockSystemFee <= 0 {
-		cfg.MaxBlockSystemFee = defaultMaxBlockSystemFee
-		log.Info("MaxBlockSystemFee is not set or wrong, setting default value", zap.Uint64("MaxBlockSystemFee", cfg.MaxBlockSystemFee))
+	if cfg.MaxBlockGas <= 0 {
+		cfg.MaxBlockGas = defaultMaxBlockGas
+		log.Info("MaxBlockSystemFee is not set or wrong, setting default value", zap.Uint64("MaxBlockSystemFee", cfg.MaxBlockGas))
 	}
 	if cfg.MaxTraceableBlocks == 0 {
 		cfg.MaxTraceableBlocks = defaultMaxTraceableBlocks
@@ -205,13 +205,6 @@ func NewBlockchain(s storage.Store, cfg config.ProtocolConfiguration, log *zap.L
 		cfg.MaxTransactionsPerBlock = defaultMaxTransactionsPerBlock
 		log.Info("MaxTransactionsPerBlock is not set or wrong, using default value",
 			zap.Uint16("MaxTransactionsPerBlock", cfg.MaxTransactionsPerBlock))
-	}
-	if cfg.MaxValidUntilBlockIncrement == 0 {
-		const secondsPerDay = int(24 * time.Hour / time.Second)
-
-		cfg.MaxValidUntilBlockIncrement = uint32(secondsPerDay / cfg.SecondsPerBlock)
-		log.Info("MaxValidUntilBlockIncrement is not set or wrong, using default value",
-			zap.Uint32("MaxValidUntilBlockIncrement", cfg.MaxValidUntilBlockIncrement))
 	}
 
 	if cfg.RemoveUntraceableBlocks && cfg.GarbageCollectionPeriod == 0 {
@@ -1208,7 +1201,7 @@ func (bc *Blockchain) ApplyPolicyToTxSet(txes []*transaction.Transaction) []*tra
 	}
 	validators, _ := bc.contracts.Designate.GetValidators(bc.dao, bc.BlockHeight()+1)
 	maxBlockSize := bc.config.MaxBlockSize
-	maxBlockSysFee := bc.config.MaxBlockSystemFee
+	maxBlockSysFee := bc.config.MaxBlockGas
 	oldVC := bc.knownValidatorsCount.Load()
 	defaultWitness := bc.defaultBlockWitness.Load()
 	curVC := len(validators)

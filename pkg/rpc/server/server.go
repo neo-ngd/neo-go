@@ -1223,14 +1223,13 @@ func (s *Server) getVersion(_ request.Params) (interface{}, *response.Error) {
 		Nonce:     s.coreServer.ID(),
 		UserAgent: s.coreServer.UserAgent,
 		Protocol: result.Protocol{
-			ChainID:                     cfg.ChainID,
-			MillisecondsPerBlock:        cfg.SecondsPerBlock * 1000,
-			MaxTraceableBlocks:          cfg.MaxTraceableBlocks,
-			MaxValidUntilBlockIncrement: cfg.MaxValidUntilBlockIncrement,
-			MaxTransactionsPerBlock:     cfg.MaxTransactionsPerBlock,
-			MemoryPoolMaxTransactions:   cfg.MemPoolSize,
-			ValidatorsCount:             byte(len(validators)),
-			InitialGasDistribution:      cfg.InitialGASSupply,
+			ChainID:                   cfg.ChainID,
+			MillisecondsPerBlock:      cfg.SecondsPerBlock * 1000,
+			MaxTraceableBlocks:        cfg.MaxTraceableBlocks,
+			MaxTransactionsPerBlock:   cfg.MaxTransactionsPerBlock,
+			MemoryPoolMaxTransactions: cfg.MemPoolSize,
+			ValidatorsCount:           byte(len(validators)),
+			InitialGasDistribution:    cfg.InitialGASSupply,
 		},
 	}, nil
 }

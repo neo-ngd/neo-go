@@ -341,11 +341,10 @@ func (p *Param) GetAddressFromHex() (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	addr := common.HexToAddress(s)
-	if addr == (common.Address{}) {
+	if !common.IsHexAddress(s) {
 		return common.Address{}, errors.New("invalid address")
 	}
-	return addr, nil
+	return common.HexToAddress(s), nil
 }
 
 // GetBytesHex returns []byte value of the parameter if
