@@ -156,7 +156,7 @@ func (p *Policy) unblockAddress(ic InteropContext, address common.Address) error
 	}
 	key := createBlockKey(address)
 	item := ic.Dao().GetStorageItem(p.Address, key)
-	if item != nil {
+	if item == nil {
 		return errors.New("account isn't blocked")
 	}
 	ic.Dao().DeleteStorageItem(p.Address, key)

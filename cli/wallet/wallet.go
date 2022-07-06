@@ -202,17 +202,10 @@ func NewCommands() []cli.Command {
 				Name:   "sign",
 				Usage:  "sign sign_context",
 				Action: sign,
-				Flags: []cli.Flag{
-					WalletPathFlag,
-					cli.StringFlag{
-						Name:  "rpc-endpoint" + ", r",
-						Usage: "RPC node address",
-					},
-					cli.StringFlag{
-						Name:  "context, c",
-						Usage: "sign a context",
-					},
-				},
+				Flags: append(listFlags, cli.StringFlag{
+					Name:  "context, c",
+					Usage: "sign a context",
+				}),
 			},
 		},
 	}}
