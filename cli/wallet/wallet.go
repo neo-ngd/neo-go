@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"io"
 	"os"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/neo-ngd/neo-go/cli/flags"
 	"github.com/neo-ngd/neo-go/cli/input"
 	"github.com/neo-ngd/neo-go/cli/options"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
@@ -641,7 +641,7 @@ func sign(ctx *cli.Context) error {
 
 	signContext := new(SignContext)
 	contextStr := string(ctx.String("context"))
-  	err = signContext.UnmarshalJSON([]byte(contextStr))
+	err = signContext.UnmarshalJSON([]byte(contextStr))
 	if err != nil {
 		return cli.NewExitError("sign context invalid", 1)
 	}
@@ -650,8 +650,7 @@ func sign(ctx *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError("sign context error", 1)
 	}
-	t := &signContext.Tx
-	tx := transaction.NewTx(t)
+	var tx *transaction.Transaction
 	if signContext.IsComplete() {
 		tx = signContext.CreateTx()
 	} else {
