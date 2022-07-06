@@ -15,6 +15,7 @@ import (
 	"github.com/neo-ngd/neo-go/cli/flags"
 	"github.com/neo-ngd/neo-go/cli/input"
 	"github.com/neo-ngd/neo-go/cli/options"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
@@ -154,6 +155,24 @@ func NewCommands() []cli.Command {
 				},
 			},
 			{
+				Name:  "import-multisig",
+				Usage: "import multisig account",
+				UsageText: "import-multisig --wallet <path> [--name <account_name>] --min <n>" +
+					" [<pubkey1> [<pubkey2> [...]]]",
+				Action: importMultisig,
+				Flags: []cli.Flag{
+					WalletPathFlag,
+					cli.StringFlag{
+						Name:  "name, n",
+						Usage: "Optional account name",
+					},
+					cli.IntFlag{
+						Name:  "min, m",
+						Usage: "Minimal number of signatures",
+					},
+				},
+			},
+			{
 				Name:      "remove",
 				Usage:     "remove an account from the wallet",
 				UsageText: "remove --wallet <path> [--force] --address <addr>",
@@ -233,6 +252,9 @@ func changePassword(ctx *cli.Context) error {
 		if acc == nil {
 			return cli.NewExitError("account is missing", 1)
 		}
+		if acc.IsMultiSig() {
+			return cli.NewExitError("can't change passord of a multi-sig account", 1)
+		}
 	}
 
 	oldPass, err := input.ReadPassword("Enter password > ")
@@ -306,7 +328,9 @@ loop:
 		if a.Address != addr {
 			continue
 		}
-
+		if a.IsMultiSig() {
+			return cli.NewExitError("can't export multi-sig account", 1)
+		}
 		for i := range wifs {
 			if a.EncryptedWIF == wifs[i] {
 				continue loop
@@ -366,6 +390,44 @@ func importWallet(ctx *cli.Context) error {
 	return nil
 }
 
+func importMultisig(ctx *cli.Context) error {
+	wall, err := openWallet(ctx.String("wallet"))
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+
+	m := ctx.Int("min")
+	if ctx.NArg() < m {
+		return cli.NewExitError(errors.New("insufficient number of public keys"), 1)
+	}
+
+	args := []string(ctx.Args())
+	pubs := make(keys.PublicKeys, len(args))
+
+	for i := range args {
+		pubs[i], err = keys.NewPublicKeyFromString(args[i])
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("can't decode public key %d: %w", i, err), 1)
+		}
+	}
+	script, err := pubs.CreateMultiSigVerificationScript(m)
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("can't create multisig verification script: %w", err), 1)
+	}
+	address := hash.Hash160(script)
+	acc := &wallet.Account{
+		Script:  script,
+		Address: address,
+	}
+	if acc.Label == "" {
+		acc.Label = ctx.String("name")
+	}
+	if err := addAccountAndSave(wall, acc); err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	return nil
+}
+
 func removeAccount(ctx *cli.Context) error {
 	wall, err := openWallet(ctx.String("wallet"))
 	if err != nil {
@@ -418,13 +480,15 @@ func dumpWallet(ctx *cli.Context) error {
 	if ctx.Bool("decrypt") {
 		pass, err := input.ReadPassword("Enter wallet password > ")
 		if err != nil {
-			return cli.NewExitError(fmt.Errorf("Error reading password: %w", err), 1)
+			return cli.NewExitError(fmt.Errorf("error reading password: %w", err), 1)
 		}
 		for i := range wall.Accounts {
 			// Just testing the decryption here.
-			err := wall.Accounts[i].Decrypt(pass, wall.Scrypt)
-			if err != nil {
-				return cli.NewExitError(err, 1)
+			if !wall.Accounts[i].IsMultiSig() {
+				err := wall.Accounts[i].Decrypt(pass, wall.Scrypt)
+				if err != nil {
+					return cli.NewExitError(err, 1)
+				}
 			}
 		}
 	}
@@ -450,11 +514,14 @@ func dumpKeys(ctx *cli.Context) error {
 
 	hasPrinted := false
 	for _, acc := range accounts {
+		if acc.IsMultiSig() {
+			continue
+		}
 		if hasPrinted {
 			fmt.Fprintln(ctx.App.Writer)
 		}
 		fmt.Fprintf(ctx.App.Writer, "%s (simple signature contract):\n", acc.Address)
-		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString(acc.PublicKey))
+		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString(acc.Script))
 		hasPrinted = true
 		if addrFlag.IsSet {
 			return cli.NewExitError(fmt.Errorf("unknown script type for address %s", addrFlag.Address()), 1)

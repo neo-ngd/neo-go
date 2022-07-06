@@ -13,7 +13,7 @@ import (
 type Account struct {
 	privateKey *keys.PrivateKey
 
-	PublicKey hexutil.Bytes `json:"script"`
+	Script hexutil.Bytes `json:"script"`
 
 	Address common.Address `json:"address"`
 
@@ -38,6 +38,10 @@ func NewAccount() (*Account, error) {
 		return nil, err
 	}
 	return NewAccountFromPrivateKey(priv), nil
+}
+
+func (a *Account) IsMultiSig() bool {
+	return len(a.Script) > 0 && a.Script[0] > 0
 }
 
 // SignTx signs transaction t and updates it's Witnesses.
@@ -79,7 +83,7 @@ func (a *Account) Decrypt(passphrase string, scrypt keys.ScryptParams) error {
 		return err
 	}
 
-	a.PublicKey = a.privateKey.PublicKey().Bytes()
+	a.Script = append([]byte{0}, a.privateKey.PublicKey().Bytes()...)
 	return nil
 }
 
@@ -116,7 +120,7 @@ func NewAccountFromPrivateKey(p *keys.PrivateKey) *Account {
 	pubKey := p.PublicKey()
 
 	a := &Account{
-		PublicKey:  pubKey.Bytes(),
+		Script:     append([]byte{0}, pubKey.Bytes()...),
 		privateKey: p,
 		Address:    pubKey.Address(),
 	}
