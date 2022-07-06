@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"strings"
 
@@ -15,8 +16,11 @@ import (
 	"github.com/neo-ngd/neo-go/cli/input"
 	"github.com/neo-ngd/neo-go/cli/options"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
+	"github.com/neo-ngd/neo-go/pkg/crypto"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/evm"
+	"github.com/neo-ngd/neo-go/pkg/rpc/response/result"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
 )
@@ -662,6 +666,145 @@ func sign(ctx *cli.Context) error {
 	defer cancel()
 	c, err := options.GetRPCClient(gctx, ctx)
 	hash, err := c.SendRawTransaction(b[1:])
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed relay tx: %w", err), 1)
+	}
+	fmt.Fprintf(ctx.App.Writer, "TxHash: %s\n", hash)
+	return nil
+}
+
+func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to common.Address, value *big.Int, data []byte) error {
+	var err error
+	var pks *keys.PublicKeys
+	isMulti := false
+	m := 0
+	signers := []*wallet.Account{}
+	for _, acc := range wall.Accounts {
+		if acc.Address == from {
+			isMulti = acc.IsMultiSig()
+			signers = append(signers, acc)
+			break
+		}
+	}
+	gctx, cancel := options.GetTimeoutContext(ctx)
+	defer cancel()
+	c, err := options.GetRPCClient(gctx, ctx)
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	if len(signers) == 0 {
+		committeeAddr, err := c.GetCommitteeAddress()
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("can't get committee address: %w", err), 1)
+		}
+		if from != committeeAddr {
+			return cli.NewExitError("can't find account to sign", 1)
+		}
+		committee, err := c.GetCommittee()
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("failed get committee: %w", err), 1)
+		}
+		isMulti = true
+		pks = &committee
+		m = keys.GetMajorityHonestNodeCount(pks.Len())
+	}
+	if isMulti {
+		if pks == nil {
+			pks, m, err = crypto.ParseMultiVerificationScript(signers[0].Script)
+			if err != nil {
+				return cli.NewExitError(fmt.Errorf("can't parse multi-sig account script: %w", err), 1)
+			}
+			signers = signers[1:]
+		}
+		for _, ac := range wall.Accounts {
+			pk, err := crypto.ParseVerificationScript(ac.Script)
+			if err != nil {
+				return cli.NewExitError(fmt.Errorf("can't parse account script: %w", err), 1)
+			}
+			if pks.Contains(pk) {
+				signers = append(signers, ac)
+			}
+			if len(signers) >= m {
+				break
+			}
+		}
+	}
+	for _, acc := range signers {
+		pass, err := input.ReadPassword(fmt.Sprintf("Enter %s password > ", acc.Address))
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("error reading password: %w", err), 1)
+		}
+		err = acc.Decrypt(pass, wall.Scrypt)
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("unable to decrypt account: %s", acc.Address), 1)
+		}
+	}
+	nonce, err := c.Eth_GetTransactionCount(from)
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed get account nonce: %w", err), 1)
+	}
+	gasPrice, err := c.Eth_GasPrice()
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed get fee per byte: %w", err), 1)
+	}
+	t := &transaction.NeoTx{
+		Nonce:    nonce,
+		GasPrice: gasPrice,
+		Gas:      0,
+		To:       &to,
+		Value:    value,
+		Data:     []byte{},
+	}
+	tx := transaction.NewTx(t)
+	gas, err := c.Eth_EstimateGas(&result.TransactionObject{
+		From:     t.From,
+		To:       t.To,
+		Data:     t.Data,
+		Value:    t.Value,
+		GasPrice: t.GasPrice,
+		Gas:      evm.TestGas,
+	})
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed estimate gas fee: %w", err), 1)
+	}
+	t.Gas = gas
+	chainId, err := c.Eth_ChainId()
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed to get chainId: %w", err), 1)
+	}
+	if !isMulti {
+		signers[0].SignTx(chainId, tx)
+	} else {
+		signContext := SignContext{
+			ChainID:    chainId,
+			Tx:         *t,
+			Sigs:       make([][]byte, m),
+			PublicKeys: *pks,
+			M:          m,
+		}
+		for _, acc := range signers {
+			for i, a := range *pks {
+				if acc.Address == a.Address() {
+					signContext.Sigs[i] = acc.PrivateKey().SignHashable(chainId, t)
+				}
+			}
+		}
+		if signContext.IsComplete() {
+			tx = signContext.CreateTx()
+		} else {
+			b, err := json.Marshal(signContext)
+			if err != nil {
+				return cli.NewExitError(fmt.Errorf("failed marshal sign context json: %w", err), 1)
+			}
+			fmt.Fprintf(ctx.App.Writer, "SignContext: %s\n", string(b))
+			return nil
+		}
+	}
+	b, err := tx.NeoTx.Bytes()
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed encode tx to bytes: %w", err), 1)
+	}
+	hash, err := c.SendRawTransaction(b)
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed relay tx: %w", err), 1)
 	}

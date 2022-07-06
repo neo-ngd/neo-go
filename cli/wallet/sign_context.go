@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/neo-ngd/neo-go/cli/input"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -125,11 +126,11 @@ func Sign(wall *wallet.Wallet, context *SignContext) error {
 			if p.Address() == acc.Address {
 				pass, err := input.ReadPassword(fmt.Sprintf("Enter password for %s > ", acc.Address))
 				if err != nil {
-					return errors.New(fmt.Sprintf("error reading password: %w", err))
+					return fmt.Errorf("error reading password: %w", err)
 				}
 				err = acc.Decrypt(pass, wall.Scrypt)
 				if err != nil {
-					return errors.New(fmt.Sprintf("unable to decrypt account: %s", acc.Address))
+					return fmt.Errorf("unable to decrypt account: %s", acc.Address)
 				}
 				sig := acc.PrivateKey().SignHashable(context.ChainID, &context.Tx)
 				context.Sigs[i] = sig

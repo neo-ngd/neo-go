@@ -191,6 +191,17 @@ func (c *Client) GetCommittee() (keys.PublicKeys, error) {
 	return *resp, nil
 }
 
+func (c *Client) GetCommitteeAddress() (common.Address, error) {
+	var (
+		params = request.NewRawParams()
+		resp   = new(common.Address)
+	)
+	if err := c.performRequest("getcommitteeaddress", params, resp); err != nil {
+		return common.Address{}, err
+	}
+	return *resp, nil
+}
+
 // GetContractStateByHash queries contract information, according to the contract script hash.
 func (c *Client) GetContractStateByHash(hash common.Address) (*state.Contract, error) {
 	return c.getContractState(hash.String())

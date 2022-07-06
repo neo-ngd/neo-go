@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/neo-ngd/neo-go/cli/options"
 	"github.com/neo-ngd/neo-go/cli/wallet"
 	"github.com/neo-ngd/neo-go/pkg/core/native"
 	"github.com/neo-ngd/neo-go/pkg/core/native/noderoles"
-	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/urfave/cli"
 )
@@ -51,19 +49,6 @@ func designateValidator(ctx *cli.Context) error {
 
 func designateStateValidators(ctx *cli.Context) error {
 	return designate(ctx, noderoles.StateValidator)
-}
-
-func getCommitteeAddress(committees keys.PublicKeys) (common.Address, []byte, int, error) {
-	if committees.Len() == 1 {
-		return committees[0].Address(), committees[0].CreateVerificationScript(), 1, nil
-	} else {
-		m := keys.GetMajorityHonestNodeCount(len(committees))
-		script, err := committees.CreateMajorityMultiSigRedeemScript()
-		if err != nil {
-			return common.Address{}, nil, 0, cli.NewExitError(fmt.Errorf("failed to create committee verification script: %w", err), 1)
-		}
-		return hash.Hash160(script), script, m, nil
-	}
 }
 
 func designate(ctx *cli.Context, role noderoles.Role) error {
