@@ -518,7 +518,7 @@ func dumpKeys(ctx *cli.Context) error {
 			fmt.Fprintln(ctx.App.Writer)
 		}
 		fmt.Fprintf(ctx.App.Writer, "%s (simple signature contract):\n", acc.Address)
-		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString(acc.Script))
+		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString((acc.Script)[1:]))
 		hasPrinted = true
 		if addrFlag.IsSet {
 			return cli.NewExitError(fmt.Errorf("unknown script type for address %s", addrFlag.Address()), 1)
@@ -637,8 +637,7 @@ func sign(ctx *cli.Context) error {
 	defer wall.Close()
 
 	signContext := new(SignContext)
-	contextStr := string(ctx.String("context"))
-	err = signContext.UnmarshalJSON([]byte(contextStr))
+	err = signContext.UnmarshalJSON([]byte(ctx.String("context")))
 	if err != nil {
 		return cli.NewExitError("sign context invalid", 1)
 	}
@@ -747,13 +746,21 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed get fee per byte: %w", err), 1)
 	}
+	script, err := pks.CreateMultiSigVerificationScript(m)
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("can't create multisig verification script: %w", err), 1)
+	}
 	t := &transaction.NeoTx{
+		From: from,
 		Nonce:    nonce,
 		GasPrice: gasPrice,
 		Gas:      0,
 		To:       &to,
 		Value:    value,
-		Data:     []byte{},
+		Data:     data,
+		Witness:  transaction.Witness {
+			VerificationScript : script,
+		},
 	}
 	tx := transaction.NewTx(t)
 	gas, err := c.Eth_EstimateGas(&result.TransactionObject{
@@ -778,7 +785,7 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 		signContext := SignContext{
 			ChainID:    chainId,
 			Tx:         *t,
-			Sigs:       make([][]byte, m),
+			Sigs:       make([][]byte, len(*pks)),
 			PublicKeys: *pks,
 			M:          m,
 		}
