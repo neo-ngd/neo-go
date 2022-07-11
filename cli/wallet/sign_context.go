@@ -1,6 +1,7 @@
 package wallet
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,8 +19,7 @@ import (
 type SignContext struct {
 	ChainID    uint64
 	Tx         transaction.NeoTx
-	Sigs       [][]byte
-	PublicKeys keys.PublicKeys
+	Parameters map[string][]byte
 	M          int
 }
 
@@ -31,14 +31,17 @@ func (sc *SignContext) Check() error {
 	if err != nil {
 		return err
 	}
-	sc.PublicKeys = *pks
-	if len(sc.Sigs) != len(sc.PublicKeys) {
+	if sc.M != m {
 		return errors.New("invalid sigs count")
 	}
 	sc.M = m
-	for i, sig := range sc.Sigs {
+	for pkstring, sig := range sc.Parameters {
 		if len(sig) > 0 {
-			if !sc.PublicKeys[i].VerifyHashable(sig, sc.ChainID, &sc.Tx) {
+			pubkey, err := keys.NewPublicKeyFromString(pkstring)
+			if !pks.Contains(pubkey) || err != nil {
+				return errors.New("invalid public key")
+			}
+			if !pubkey.VerifyHashable(sig, sc.ChainID, &sc.Tx) {
 				return errors.New("invalid signature")
 			}
 		}
@@ -46,21 +49,9 @@ func (sc *SignContext) Check() error {
 	return nil
 }
 
-func (sc *SignContext) AddSig(pk *keys.PublicKey, sig []byte) error {
-	if !pk.VerifyHashable(sig, sc.ChainID, &sc.Tx) {
-		return errors.New("invalid signature")
-	}
-	for i, p := range sc.PublicKeys {
-		if p.Address() == pk.Address() {
-			sc.Sigs[i] = sig
-		}
-	}
-	return nil
-}
-
 func (sc SignContext) IsComplete() bool {
 	sigCount := 0
-	for _, sig := range sc.Sigs {
+	for _, sig := range sc.Parameters {
 		if len(sig) > 0 {
 			sigCount++
 		}
@@ -68,25 +59,32 @@ func (sc SignContext) IsComplete() bool {
 	return sc.M == sigCount
 }
 
-func (sc *SignContext) CreateTx() *transaction.Transaction {
+func (sc *SignContext) CreateTx() (*transaction.Transaction, error) {
 	if !sc.IsComplete() {
-		return nil
+		return nil, errors.New("sign context is incomplete")
+	}
+	pks, _, err := crypto.ParseMultiVerificationScript(sc.Tx.Witness.VerificationScript)
+	if err != nil {
+		return nil, errors.New("can't parse multi-sig account script")
 	}
 	sigs := make([][]byte, sc.M)
-	for i, j := 0, 0; i < sc.M && j < len(sc.Sigs); j++ {
-		if len(sc.Sigs[j]) > 0 {
-			sigs[i] = sc.Sigs[j]
+	i := 0
+	for _, pk := range *pks {
+		pkstring := hex.EncodeToString(pk.Bytes())
+		if sc.Parameters[pkstring] != nil {
+			sigs[i] = sc.Parameters[pkstring]
 			i++
 		}
 	}
 	sc.Tx.Witness.InvocationScript = crypto.CreateMultiInvocationScript(sigs)
-	return transaction.NewTx(&sc.Tx)
+	return transaction.NewTx(&sc.Tx), nil
 }
 
 type signContextJson struct {
 	ChainID hexutil.Uint64    `json:"chainId"`
 	Tx      transaction.NeoTx `json:"tx"`
-	Sigs    []hexutil.Bytes   `json:"signatures"`
+	M    hexutil.Uint64   `json:"m"`
+	Parameters map[string]hexutil.Bytes `json:"parameters"`
 }
 
 func (sc SignContext) MarshalJSON() ([]byte, error) {
@@ -94,9 +92,10 @@ func (sc SignContext) MarshalJSON() ([]byte, error) {
 		ChainID: hexutil.Uint64(sc.ChainID),
 		Tx:      sc.Tx,
 	}
-	scj.Sigs = make([]hexutil.Bytes, len(sc.Sigs))
-	for i, sig := range sc.Sigs {
-		scj.Sigs[i] = sig
+	scj.Parameters = make(map[string]hexutil.Bytes)
+	scj.M = hexutil.Uint64(sc.M)
+	for k, v := range sc.Parameters {
+		scj.Parameters[k] = v
 	}
 	return json.Marshal(scj)
 }
@@ -109,10 +108,11 @@ func (sc *SignContext) UnmarshalJSON(b []byte) error {
 	}
 	sc.ChainID = uint64(scj.ChainID)
 	sc.Tx = scj.Tx
-	sc.Sigs = make([][]byte, len(scj.Sigs))
-	for i, sig := range scj.Sigs {
-		sc.Sigs[i] = sig
+	sc.Parameters = make(map[string][]byte)
+	for k, v := range scj.Parameters {
+		sc.Parameters[k] = v
 	}
+	sc.M = int(scj.M)
 	err = sc.Check()
 	if err != nil {
 		return err
@@ -121,8 +121,12 @@ func (sc *SignContext) UnmarshalJSON(b []byte) error {
 }
 
 func Sign(wall *wallet.Wallet, context *SignContext) error {
+	pks, _, err := crypto.ParseMultiVerificationScript(context.Tx.Witness.VerificationScript)
+	if err != nil {
+		return fmt.Errorf("can't parse multi-sig account script: %w", err)
+	}
 	for _, acc := range wall.Accounts {
-		for i, p := range context.PublicKeys {
+		for _, p := range *pks {
 			if p.Address() == acc.Address {
 				pass, err := input.ReadPassword(fmt.Sprintf("Enter password for %s > ", acc.Address))
 				if err != nil {
@@ -133,7 +137,7 @@ func Sign(wall *wallet.Wallet, context *SignContext) error {
 					return fmt.Errorf("unable to decrypt account: %s", acc.Address)
 				}
 				sig := acc.PrivateKey().SignHashable(context.ChainID, &context.Tx)
-				context.Sigs[i] = sig
+				context.Parameters[hex.EncodeToString(p.Bytes())] = sig
 			}
 		}
 	}

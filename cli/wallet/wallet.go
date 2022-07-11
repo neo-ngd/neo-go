@@ -648,7 +648,10 @@ func sign(ctx *cli.Context) error {
 	}
 	var tx *transaction.Transaction
 	if signContext.IsComplete() {
-		tx = signContext.CreateTx()
+		tx, err = signContext.CreateTx()
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("failed to create tx: %w", err), 1)
+		}
 	} else {
 		b, err := json.Marshal(*signContext)
 		if err != nil {
@@ -770,6 +773,9 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 		Value:    t.Value,
 		GasPrice: t.GasPrice,
 		Gas:      evm.TestGas,
+		Witness: &transaction.Witness {
+			VerificationScript : script,
+		},
 	})
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed estimate gas fee: %w", err), 1)
@@ -785,19 +791,21 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 		signContext := SignContext{
 			ChainID:    chainId,
 			Tx:         *t,
-			Sigs:       make([][]byte, len(*pks)),
-			PublicKeys: *pks,
+			Parameters: make(map[string][]byte),
 			M:          m,
 		}
 		for _, acc := range signers {
-			for i, a := range *pks {
+			for _, a := range *pks {
 				if acc.Address == a.Address() {
-					signContext.Sigs[i] = acc.PrivateKey().SignHashable(chainId, t)
+					signContext.Parameters[hex.EncodeToString(a.Bytes())] = acc.PrivateKey().SignHashable(chainId, t)
 				}
 			}
 		}
 		if signContext.IsComplete() {
-			tx = signContext.CreateTx()
+			tx, err = signContext.CreateTx()
+			if err != nil {
+				return cli.NewExitError(fmt.Errorf("failed to create tx: %w", err), 1)
+			}
 		} else {
 			b, err := json.Marshal(signContext)
 			if err != nil {

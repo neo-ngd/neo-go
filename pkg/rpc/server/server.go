@@ -886,15 +886,32 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 	if err != nil {
 		return nil, response.NewInvalidParamsError(fmt.Sprintf("Could not unmarshal tx object: %s", err), err)
 	}
-	inner := &types.LegacyTx{
-		Nonce:    s.chain.GetNonce(txObj.From) + 1,
-		GasPrice: s.chain.GetGasPrice(),
-		To:       txObj.To,
-		Value:    txObj.Value,
-		Data:     txObj.Data,
+	var tx * transaction.Transaction
+	if txObj.Witness == nil {
+		inner := &types.LegacyTx{
+			Nonce:    s.chain.GetNonce(txObj.From) + 1,
+			GasPrice: s.chain.GetGasPrice(),
+			Gas:      txObj.Gas,
+			To:       txObj.To,
+			Value:    txObj.Value,
+			Data:     txObj.Data,
+		}
+		tx = transaction.NewTx(inner)
+	} else {
+		inner := &transaction.NeoTx{
+			Nonce:    s.chain.GetNonce(txObj.From) + 1,
+			From: txObj.From,
+			GasPrice: s.chain.GetGasPrice(),
+			Gas:      txObj.Gas,
+			To:       txObj.To,
+			Value:    txObj.Value,
+			Data:     txObj.Data,
+			Witness: *txObj.Witness,
+		}
+		tx = transaction.NewTx(inner)
 	}
-	tx := transaction.NewTx(inner)
 	tx.EthFrom = txObj.From
+	fmt.Println(tx)
 	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
@@ -907,7 +924,7 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 		}
 	}
 	var left uint64
-	if inner.To == nil {
+	if tx.To() == nil {
 		_, _, left, err = ic.VM.Create(ic, tx.Data(), evm.TestGas, tx.Value())
 	} else {
 		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), evm.TestGas, tx.Value())
@@ -915,14 +932,14 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not executing data: %s", err), err)
 	}
-	inner.Gas = evm.TestGas - left
+	gas := evm.TestGas - left
 	feePerByte := s.chain.GetFeePerByte()
 	netfee := transaction.CalculateNetworkFee(tx, feePerByte)
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not calculate network fee: %s", err), err)
 	}
-	inner.Gas += netfee + params.SstoreSentryGasEIP2200
-	return hexutil.EncodeUint64(inner.Gas), nil
+	gas += netfee + params.SstoreSentryGasEIP2200
+	return hexutil.EncodeUint64(gas), nil
 }
 
 func (s *Server) eth_getBlockByHash(params request.Params) (interface{}, *response.Error) {

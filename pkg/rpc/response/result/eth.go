@@ -6,6 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 )
 
 type Syncing struct {
@@ -21,6 +22,7 @@ type TransactionObject struct {
 	GasPrice *big.Int        `json:"gasPrice"` //optional
 	To       *common.Address `json:"to"`
 	Value    *big.Int        `json:"value"` //optional
+	Witness  *transaction.Witness `json:"witness"` //optional
 }
 
 type txObj struct {
@@ -30,6 +32,7 @@ type txObj struct {
 	GasPrice string `json:"gasPrice"`
 	To       string `json:"to,omitempty"`
 	Value    string `json:"value"`
+	Witness    *transaction.Witness `json:"witness"`
 }
 
 func (t *TransactionObject) UnmarshalJSON(text []byte) error {
@@ -81,6 +84,11 @@ func (t *TransactionObject) UnmarshalJSON(text []byte) error {
 		}
 		t.Data = data
 	}
+	if tx.Witness == nil {
+		t.Witness = nil
+	} else {
+		t.Witness = tx.Witness
+	}
 	return nil
 }
 
@@ -92,6 +100,7 @@ func (t TransactionObject) MarshalJSON() ([]byte, error) {
 		GasPrice: hexutil.EncodeBig(t.GasPrice),
 		Data:     hexutil.Encode(t.Data),
 		Value:    hexutil.EncodeBig(t.Value),
+		Witness:    t.Witness,
 	}
 	return json.Marshal(tx)
 }
