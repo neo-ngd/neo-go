@@ -719,6 +719,9 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 			signers = signers[1:]
 		}
 		for _, ac := range wall.Accounts {
+			if ac.Script[0] != 0 {
+				continue
+			}
 			pk, err := crypto.ParseVerificationScript(ac.Script)
 			if err != nil {
 				return cli.NewExitError(fmt.Errorf("can't parse account script: %w", err), 1)

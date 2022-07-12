@@ -56,7 +56,7 @@ func (g *GAS) initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
-	addr, err := ic.Natives().Designate.GetCommitteeAddress(ic.Dao(), 0)
+	addr, err := ic.Natives().Designate.GetValidatorAddress(ic.Dao(), 0)
 	if err != nil {
 		return err
 	}

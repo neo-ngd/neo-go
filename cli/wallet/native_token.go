@@ -123,7 +123,7 @@ func transferNativeToken(ctx *cli.Context) error {
 	var from common.Address
 	fromFlag := ctx.Generic("from").(*flags.Address)
 	if fromFlag.IsSet {
-		from := fromFlag.Address()
+		from = fromFlag.Address()
 		if from == (common.Address{}) {
 			return cli.NewExitError(fmt.Errorf("invalid from address"), 1)
 		}
