@@ -422,6 +422,7 @@ func importMultisig(ctx *cli.Context) error {
 	if err := addAccountAndSave(wall, acc); err != nil {
 		return cli.NewExitError(err, 1)
 	}
+	fmt.Fprintf(ctx.App.Writer, "Multisig. Addr.: %s \n", address)
 	return nil
 }
 
@@ -511,14 +512,18 @@ func dumpKeys(ctx *cli.Context) error {
 
 	hasPrinted := false
 	for _, acc := range accounts {
-		if acc.IsMultiSig() {
-			continue
-		}
 		if hasPrinted {
 			fmt.Fprintln(ctx.App.Writer)
 		}
-		fmt.Fprintf(ctx.App.Writer, "%s (simple signature contract):\n", acc.Address)
-		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString((acc.Script)[1:]))
+		if acc.IsMultiSig() {
+			fmt.Println("multiple signature contract:")
+			fmt.Fprintf(ctx.App.Writer, "address: %s \n", acc.Address)
+			fmt.Fprintf(ctx.App.Writer, "script: %s \n", hex.EncodeToString((acc.Script)[1:]))
+		} else {
+			fmt.Println("simple signature contract:")
+			fmt.Fprintf(ctx.App.Writer, "address: %s \n", acc.Address)
+			fmt.Fprintf(ctx.App.Writer, "public key: %s \n", hex.EncodeToString((acc.Script)[1:]))
+		}
 		hasPrinted = true
 		if addrFlag.IsSet {
 			return cli.NewExitError(fmt.Errorf("unknown script type for address %s", addrFlag.Address()), 1)
