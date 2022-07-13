@@ -191,6 +191,17 @@ func (c *Client) GetCommittee() (keys.PublicKeys, error) {
 	return *resp, nil
 }
 
+func (c *Client) GetValidators() (keys.PublicKeys, error) {
+	var (
+		params = request.NewRawParams()
+		resp   = new(keys.PublicKeys)
+	)
+	if err := c.performRequest("getvalidators", params, resp); err != nil {
+		return nil, err
+	}
+	return *resp, nil
+}
+
 func (c *Client) GetCommitteeAddress() (common.Address, error) {
 	var (
 		params = request.NewRawParams()

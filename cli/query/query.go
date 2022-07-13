@@ -29,6 +29,12 @@ func NewCommands() []cli.Command {
 				Flags:  options.RPC,
 			},
 			{
+				Name:   "validators",
+				Usage:  "Get validators list",
+				Action: queryValidator,
+				Flags:  options.RPC,
+			},
+			{
 				Name:   "height",
 				Usage:  "Get node height",
 				Action: queryHeight,
@@ -42,6 +48,25 @@ func NewCommands() []cli.Command {
 			},
 		},
 	}}
+}
+
+func queryValidator(ctx *cli.Context) error {
+	var err error
+	gctx, cancel := options.GetTimeoutContext(ctx)
+	defer cancel()
+
+	c, err := options.GetRPCClient(gctx, ctx)
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	validators, err := c.GetValidators()
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	for _, k := range validators {
+		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString(k.Bytes()))
+	}
+	return nil
 }
 
 func queryTx(ctx *cli.Context) error {

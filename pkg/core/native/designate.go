@@ -221,7 +221,7 @@ func (d *Designate) designateAsRole(ic InteropContext, r noderoles.Role, keys ke
 }
 
 func (g *Designate) designateRawAsRole(ic InteropContext, input []byte) error {
-	if len(input) < 2 {
+	if len(input) < 35 {
 		return ErrInvalidInput
 	}
 	r := noderoles.Role(input[0])
