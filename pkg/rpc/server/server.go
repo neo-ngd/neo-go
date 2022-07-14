@@ -708,19 +708,19 @@ func (s *Server) eth_sign(params request.Params) (interface{}, *response.Error) 
 }
 
 func (s *Server) eth_signTransaction(params request.Params) (interface{}, *response.Error) {
-	param := params.Value(0)
-	if param == nil {
+	param, err := params.Value(0).GetString()
+	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
-	data := []byte(param.RawMessage)
+	data := []byte(param)
 	txObj := result.TransactionObject{}
-	err := json.Unmarshal(data, &txObj)
+	err = json.Unmarshal(data, &txObj)
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
 	acc := s.getWalletAccount(txObj.From)
 	if acc == nil {
-		return nil, response.NewInternalServerError("Could not found accout to sign tx", errors.New("account not found"))
+		return nil, response.NewInternalServerError("Could not found account to sign tx", errors.New("account not found"))
 	}
 	inner := &types.LegacyTx{
 		Nonce: s.chain.GetNonce(txObj.From) + 1,

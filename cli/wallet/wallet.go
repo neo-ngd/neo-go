@@ -193,7 +193,7 @@ func NewCommands() []cli.Command {
 			{
 				Name:      "list",
 				Usage:     "list addresses in wallet",
-				UsageText: "list --wallet <path>",
+				UsageText: "list --wallet <path> --rpc-endpoint <node> [--timeout <time>]",
 				Action:    listAddresses,
 				Flags:     listFlags,
 			},
@@ -205,6 +205,7 @@ func NewCommands() []cli.Command {
 			{
 				Name:   "sign",
 				Usage:  "sign sign_context",
+				UsageText: "sign --wallet <path> --rpc-endpoint <node> [--timeout <time>] --context <contextJson>",
 				Action: sign,
 				Flags: append(listFlags, cli.StringFlag{
 					Name:  "context, c",
