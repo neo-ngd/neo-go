@@ -2,6 +2,7 @@ package native
 
 import (
 	"encoding/binary"
+	"errors"
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -20,13 +21,14 @@ const (
 )
 
 var (
-	DesignationAddress common.Address = common.Address(common.BytesToAddress([]byte{nativeids.Designation}))
+	DesignationAddress       common.Address = common.Address(common.BytesToAddress([]byte{nativeids.Designation}))
+	ErrInvalidCommitteeCount                = errors.New("designated committee can't be less than validators count")
 )
 
 type Designate struct {
 	state.NativeContract
 	StandbyCommittee keys.PublicKeys
-	StandyValidators keys.PublicKeys
+	ValidatorsCount  int
 }
 
 func NewDesignate(cfg config.ProtocolConfiguration) *Designate {
@@ -36,12 +38,6 @@ func NewDesignate(cfg config.ProtocolConfiguration) *Designate {
 	}
 	standbyCommittee = standbyCommittee.Unique()
 	sort.Sort(standbyCommittee)
-	standbyValidators, err := keys.NewPublicKeysFromStrings(cfg.StandbyValidators)
-	if err != nil {
-		panic("invalid standy validators config")
-	}
-	standbyValidators = standbyValidators.Unique()
-	sort.Sort(standbyValidators)
 	d := &Designate{
 		NativeContract: state.NativeContract{
 			Name: nativenames.Designation,
@@ -50,7 +46,7 @@ func NewDesignate(cfg config.ProtocolConfiguration) *Designate {
 			},
 		},
 		StandbyCommittee: standbyCommittee,
-		StandyValidators: standbyValidators,
+		ValidatorsCount:  cfg.ValidatorsCount,
 	}
 	designateAbi, contractCalls, err := constructAbi(d)
 	if err != nil {
@@ -66,7 +62,6 @@ func (d *Designate) ContractCall_initialize(ic InteropContext) error {
 		return ErrInitialize
 	}
 	ic.Dao().PutStorageItem(d.Address, createRoleKey(noderoles.Committee, 0), d.StandbyCommittee.Bytes())
-	ic.Dao().PutStorageItem(d.Address, createRoleKey(noderoles.Validator, 0), d.StandyValidators.Bytes())
 	return nil
 }
 
@@ -109,8 +104,11 @@ func (d *Designate) designateAsRole(ic InteropContext, r noderoles.Role, keys ke
 	if ks.Len() > MaxNodeCount {
 		return ErrLargeNodeList
 	}
+	if r == noderoles.Committee && ks.Len() < d.ValidatorsCount {
+		return ErrInvalidCommitteeCount
+	}
 	index := ic.PersistingBlock().Index + 1
-	if r == noderoles.Validator {
+	if r == noderoles.Committee {
 		index += 1
 	}
 	committee, err := d.GetCommitteeAddress(ic.Dao(), index)
@@ -191,7 +189,14 @@ func (d *Designate) GetCommitteeAddress(s *dao.Simple, index uint32) (common.Add
 }
 
 func (d *Designate) GetValidators(s *dao.Simple, index uint32) (keys.PublicKeys, error) {
-	return d.GetDesignatedByRole(s, noderoles.Validator, index)
+	committees, err := d.GetCommitteeMembers(s, index)
+	if err != nil {
+		return keys.PublicKeys{}, err
+	}
+	if committees.Len() < d.ValidatorsCount {
+		panic(ErrInvalidCommitteeCount)
+	}
+	return keys.PublicKeys(committees[:d.ValidatorsCount]), nil
 }
 
 func (d *Designate) GetValidatorAddress(s *dao.Simple, index uint32) (common.Address, error) {
@@ -206,20 +211,8 @@ func (d *Designate) GetValidatorAddress(s *dao.Simple, index uint32) (common.Add
 	return hash.Hash160(script), nil
 }
 
-func (d *Designate) GetSysAccounts(s *dao.Simple, index uint32) (keys.PublicKeys, error) {
-	committee, err := d.GetCommitteeMembers(s, index)
-	if err != nil {
-		return nil, err
-	}
-	validators, err := d.GetValidators(s, index)
-	if err != nil {
-		return nil, err
-	}
-	return append(committee, validators...), nil
-}
-
 func (d *Designate) GetSysAddresses(s *dao.Simple, index uint32) ([]common.Address, error) {
-	accounts, err := d.GetSysAccounts(s, index)
+	accounts, err := d.GetCommitteeMembers(s, index)
 	if err != nil {
 		return nil, err
 	}
@@ -227,27 +220,18 @@ func (d *Designate) GetSysAddresses(s *dao.Simple, index uint32) ([]common.Addre
 	for i, account := range accounts {
 		addrs[i] = account.Address()
 	}
-	return addrs, nil
-}
-
-func (d *Designate) GetAdminAccounts(s *dao.Simple, index uint32) (keys.PublicKeys, error) {
-	return d.GetCommitteeMembers(s, index)
-}
-
-func (d *Designate) GetAdminAddresses(s *dao.Simple, index uint32) ([]common.Address, error) {
-	accounts, err := d.GetCommitteeMembers(s, index)
+	if accounts.Len() > 1 {
+		committeeAddress, err := createCommitteeAddress(accounts)
+		if err != nil {
+			return nil, err
+		}
+		addrs = append(addrs, committeeAddress)
+	}
+	script, err := keys.PublicKeys(accounts[:d.ValidatorsCount]).CreateDefaultMultiSigRedeemScript()
 	if err != nil {
 		return nil, err
 	}
-	addrs := make([]common.Address, len(accounts)+1)
-	for i, account := range accounts {
-		addrs[i] = account.Address()
-	}
-	committeeAddress, err := createCommitteeAddress(accounts)
-	if err != nil {
-		return nil, err
-	}
-	addrs[len(addrs)-1] = committeeAddress
+	addrs = append(addrs, hash.Hash160(script))
 	return addrs, nil
 }
 

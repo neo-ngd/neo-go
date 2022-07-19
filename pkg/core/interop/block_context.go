@@ -12,15 +12,16 @@ import (
 func NewEVMBlockContext(block *block.Block,
 	bc Chain,
 	protocolSettings config.ProtocolConfiguration) (bctx vm.BlockContext) {
-	validators, err := bc.GetCurrentValidators()
-	if err != nil {
-		panic(err)
-	}
 	var coinbase common.Address
-	if len(validators) != 0 {
+	if block.Index > 0 {
+		validators, err := bc.GetCurrentValidators()
+		if err != nil {
+			panic(err)
+		}
+		if len(validators) == 0 {
+			panic("no validators")
+		}
 		coinbase = validators[block.PrimaryIndex].Address()
-	} else if block.Index != 0 {
-		panic("missing validators")
 	}
 	random := common.BigToHash(big.NewInt(int64(block.Nonce)))
 	bctx = vm.BlockContext{

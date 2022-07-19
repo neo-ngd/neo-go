@@ -83,7 +83,7 @@ func TestCommitteeRole(t *testing.T) {
 	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6", hex.EncodeToString(ks[0].Bytes()))
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 2)
+	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, "0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4", hex.EncodeToString(ks[0].Bytes()))
 	// - - - - - - - - - - - - -
@@ -91,65 +91,13 @@ func TestCommitteeRole(t *testing.T) {
 	s, err = des.GetCommitteeAddress(dao, 101)
 	assert.NoError(t, err)
 	ic.S = s
-	ic.Index = 2
+	ic.Index = 102
 	err = des.designateAsRole(ic, noderoles.Committee, keys.PublicKeys{k1, k2})
 	assert.NoError(t, err)
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 2)
+	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 101)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, ks.Len())
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 3)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, ks.Len())
-}
-
-func TestValidatorRole(t *testing.T) {
-	dao := dao.NewSimple(storage.NewMemoryStore())
-	des := NewDesignate(config.ProtocolConfiguration{
-		StandbyValidators: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
-		StandbyCommittee: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
-	})
-	k1, err := keys.NewPublicKeyFromString("023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6")
-	assert.NoError(t, err)
-	ic := interopContext{
-		D: dao,
-	}
-	err = des.ContractCall_initialize(ic)
-	assert.NoError(t, err)
-	ks, err := des.GetDesignatedByRole(dao, noderoles.Validator, 1)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, ks.Len())
-	assert.Equal(t, "023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6", hex.EncodeToString(ks[0].Bytes()))
-	// - change one validator -
-	k2, err := keys.NewPublicKeyFromString("0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4")
-	assert.NoError(t, err)
-	s, err := des.GetCommitteeAddress(dao, 1)
-	assert.NoError(t, err)
-	ic.S = s
-	ic.Index = 1
-	err = des.designateAsRole(ic, noderoles.Validator, keys.PublicKeys{k2})
-	assert.NoError(t, err)
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Validator, 2)
-	assert.NoError(t, err)
-	assert.Equal(t, "023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6", hex.EncodeToString(ks[0].Bytes()))
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Validator, 3)
-	assert.NoError(t, err)
-	assert.Equal(t, "0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4", hex.EncodeToString(ks[0].Bytes()))
-	// - - - - - - - - - - - - -
-	// - change committee to 2 from 1 -
-	s, err = des.GetCommitteeAddress(dao, 3)
-	assert.NoError(t, err)
-	ic.S = s
-	ic.Index = 3
-	err = des.designateAsRole(ic, noderoles.Validator, keys.PublicKeys{k1, k2})
-	assert.NoError(t, err)
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Validator, 4)
-	assert.NoError(t, err)
-	assert.Equal(t, 1, ks.Len())
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Validator, 5)
+	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 104)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, ks.Len())
 }
@@ -157,9 +105,7 @@ func TestValidatorRole(t *testing.T) {
 func TestDesignateContractCall(t *testing.T) {
 	dao := dao.NewSimple(storage.NewMemoryStore())
 	des := NewDesignate(config.ProtocolConfiguration{
-		StandbyValidators: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
+		ValidatorsCount: 1,
 		StandbyCommittee: []string{
 			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
 		},
@@ -183,16 +129,14 @@ func TestDesignateContractCall(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = des.Run(ic, input)
 	assert.NoError(t, err)
-	ks, err = des.GetDesignatedByRole(dao, noderoles.Validator, 2)
+	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, "0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4", hex.EncodeToString(ks[0].Bytes()))
 }
 
 func TestMarshalNativeAbi(t *testing.T) {
 	des := NewDesignate(config.ProtocolConfiguration{
-		StandbyValidators: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
+		ValidatorsCount: 1,
 		StandbyCommittee: []string{
 			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
 		},
