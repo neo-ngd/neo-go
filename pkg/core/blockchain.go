@@ -759,8 +759,10 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		}
 		gasUsed := tx.Gas() - left
 		logs := sdb.GetLogs()
-		sdb.SetNonce(ic.Sender(), sdb.GetNonce(ic.Sender())+1)
-		sdb.AddBalance(ic.Coinbase(), big.NewInt(0).Mul(big.NewInt(int64(netFee)), gasPrice))
+		sdb.SetNonce(tx.From(), sdb.GetNonce(tx.From())+1)
+		if block.Index > 0 {
+			sdb.AddBalance(ic.Coinbase(), big.NewInt(0).Mul(big.NewInt(int64(netFee)), gasPrice))
+		}
 		if gas > left {
 			commitAddress, err := bc.GetCommitteeAddress()
 			if err != nil {

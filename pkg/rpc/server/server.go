@@ -911,7 +911,6 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 		tx = transaction.NewTx(inner)
 	}
 	tx.EthFrom = txObj.From
-	fmt.Println(tx)
 	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)

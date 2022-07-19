@@ -28,26 +28,28 @@ type Chain interface {
 
 // Context represents context in which interops are executed.
 type Context struct {
-	Chain Chain
-	Block *block.Block
-	Tx    *transaction.Transaction
-	VM    *vm.EVM
-	bctx  vm.BlockContext
-	sdb   *statedb.StateDB
+	Chain  Chain
+	Block  *block.Block
+	Tx     *transaction.Transaction
+	VM     *vm.EVM
+	bctx   vm.BlockContext
+	sdb    *statedb.StateDB
+	caller common.Address
 }
 
 func NewContext(block *block.Block, tx *transaction.Transaction, sdb *statedb.StateDB, chain Chain) (*Context, error) {
 	ctx := &Context{
-		Chain: chain,
-		Block: block,
-		Tx:    tx,
-		sdb:   sdb,
+		Chain:  chain,
+		Block:  block,
+		Tx:     tx,
+		sdb:    sdb,
+		caller: tx.From(),
 	}
 	ctx.bctx = NewEVMBlockContext(block, chain, chain.GetConfig())
 	txContext := NewEVMTxContext(tx.From(), big.NewInt(1))
 	ctx.VM = evm.NewEVM(ctx.bctx,
 		txContext, sdb, chain.GetConfig(),
-		map[common.Address]vm.PrecompiledContract{
+		map[common.Address]vm.NativeContract{
 			native.DesignationAddress: nativeWrapper{
 				nativeContract: chain.Contracts().Designate,
 				ic:             ctx,
@@ -65,7 +67,7 @@ func NewContext(block *block.Block, tx *transaction.Transaction, sdb *statedb.St
 }
 
 func (c Context) Sender() common.Address {
-	return c.Tx.From()
+	return c.caller
 }
 
 func (c Context) Natives() *native.Contracts {

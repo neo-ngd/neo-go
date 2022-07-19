@@ -15,7 +15,7 @@ func NewEVM(bctx vm.BlockContext,
 	tctx vm.TxContext,
 	sdb vm.StateDB,
 	protocolSettings config.ProtocolConfiguration,
-	extraPrecompiles map[common.Address]vm.PrecompiledContract) *vm.EVM {
+	nativeContracts map[common.Address]vm.NativeContract) *vm.EVM {
 	evm := vm.NewEVM(bctx, tctx, sdb, &params.ChainConfig{
 		ChainID:             big.NewInt(int64(protocolSettings.ChainID)),
 		HomesteadBlock:      big.NewInt(0),
@@ -32,6 +32,6 @@ func NewEVM(bctx vm.BlockContext,
 		BerlinBlock:         big.NewInt(0),
 		LondonBlock:         big.NewInt(0),
 		Ethash:              new(params.EthashConfig),
-	}, vm.Config{}, extraPrecompiles)
+	}, vm.Config{}, nativeContracts)
 	return evm
 }
