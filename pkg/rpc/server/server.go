@@ -128,7 +128,7 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"eth_getLogs":                             (*Server).eth_getLogs,
 	// -- end eth api
 	"getversion":           (*Server).getVersion,
-	"calculatenetworkfee":  (*Server).calculateNetworkFee,
+	"calculategas":         (*Server).calculateGas,
 	"findstates":           (*Server).findStates,
 	"getbestblockhash":     (*Server).getBestBlockHash,
 	"getblock":             (*Server).getBlock,
@@ -1289,7 +1289,7 @@ func (s *Server) validateAddress(reqParams request.Params) (interface{}, *respon
 }
 
 // calculateNetworkFee calculates network fee for the transaction.
-func (s *Server) calculateNetworkFee(reqParams request.Params) (interface{}, *response.Error) {
+func (s *Server) calculateGas(reqParams request.Params) (interface{}, *response.Error) {
 	if len(reqParams) < 1 {
 		return 0, response.ErrInvalidParams
 	}
@@ -1297,15 +1297,45 @@ func (s *Server) calculateNetworkFee(reqParams request.Params) (interface{}, *re
 	if err != nil {
 		return 0, response.WrapErrorWithData(response.ErrInvalidParams, err)
 	}
-	tx, err := transaction.NewTransactionFromBytes(byteTx)
+	neoTx, err := transaction.NewNeoTxFromBytes(byteTx)
 	if err != nil {
 		return 0, response.WrapErrorWithData(response.ErrInvalidParams, err)
 	}
-	netfee := transaction.CalculateNetworkFee(tx, s.chain.FeePerByte())
+	if len(neoTx.Witness.VerificationScript) < 1 {
+		return nil, response.NewInvalidParamsError("missing verification script", nil)
+	}
+	tx := transaction.NewTx(neoTx)
+	feePerByte := s.chain.GetFeePerByte()
+	netfee := transaction.CalculateNetworkFee(tx, feePerByte)
+	if err != nil {
+		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not calculate network fee: %s", err), err)
+	}
+	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
+	if err != nil {
+		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
+	}
+	fakeBlock := *block
+	ic, err := s.chain.GetTestVM(tx, &fakeBlock)
+	if err != nil {
+		if err != nil {
+			return nil, response.NewInternalServerError(fmt.Sprintf("Could not create execute context: %s", err), err)
+		}
+	}
+	var left uint64
+	if neoTx.To == nil {
+		_, _, left, err = ic.VM.Create(ic, tx.Data(), evm.TestGas, tx.Value())
+	} else {
+		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), evm.TestGas, tx.Value())
+	}
+	if err != nil {
+		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not executing data: %s", err), err)
+	}
+	neoTx.Gas = evm.TestGas - left
+	neoTx.Gas += netfee + params.SstoreSentryGasEIP2200
 	if err != nil {
 		return 0, response.WrapErrorWithData(response.ErrInvalidParams, fmt.Errorf("failed to compute tx size: %w", err))
 	}
-	return result.NetworkFee{Value: netfee}, nil
+	return result.NetworkFee{Value: neoTx.Gas}, nil
 }
 
 // getContractScriptHashFromParam returns the contract script hash by hex contract hash, address, id or native contract name.

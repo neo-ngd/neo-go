@@ -89,7 +89,6 @@ func balance(ctx *cli.Context) error {
 			return cli.NewExitError(fmt.Errorf("invalid account address: %w", err), 1)
 		}
 		balance, err := c.Eth_GetBalance(addr)
-		fmt.Println(balance)
 		if err != nil {
 			return cli.NewExitError(err, 1)
 		}

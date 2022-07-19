@@ -42,7 +42,7 @@ func NewDesignate(cfg config.ProtocolConfiguration) *Designate {
 	}
 	standbyValidators = standbyValidators.Unique()
 	sort.Sort(standbyValidators)
-	return &Designate{
+	d := &Designate{
 		NativeContract: state.NativeContract{
 			Name: nativenames.Designation,
 			Contract: state.Contract{
@@ -52,14 +52,76 @@ func NewDesignate(cfg config.ProtocolConfiguration) *Designate {
 		StandbyCommittee: standbyCommittee,
 		StandyValidators: standbyValidators,
 	}
+	designateAbi, contractCalls, err := constructAbi(d)
+	if err != nil {
+		panic(err)
+	}
+	d.Abi = *designateAbi
+	d.ContractCalls = contractCalls
+	return d
 }
 
-func (d *Designate) initialize(ic InteropContext) error {
+func (d *Designate) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
 	ic.Dao().PutStorageItem(d.Address, createRoleKey(noderoles.Committee, 0), d.StandbyCommittee.Bytes())
 	ic.Dao().PutStorageItem(d.Address, createRoleKey(noderoles.Validator, 0), d.StandyValidators.Bytes())
+	return nil
+}
+
+func (d *Designate) ContractCall_designateAsRole(ic InteropContext, role byte, rawPks []byte) error {
+	r := noderoles.Role(role)
+	pks := new(keys.PublicKeys)
+	err := pks.DecodeBytes(rawPks)
+	if err != nil {
+		return err
+	}
+	return d.designateAsRole(ic, r, *pks)
+}
+
+func (d *Designate) checkCommittee(ic InteropContext) error {
+	if ic.PersistingBlock() == nil {
+		return ErrNoBlock
+	}
+	committeeAddress, err := d.GetCommitteeAddress(ic.Dao(), ic.PersistingBlock().Index)
+	if err != nil {
+		return err
+	}
+	if ic.Sender() != committeeAddress {
+		return ErrInvalidSender
+	}
+	return nil
+}
+
+func (d *Designate) designateAsRole(ic InteropContext, r noderoles.Role, keys keys.PublicKeys) error {
+	if !noderoles.IsValid(r) {
+		return ErrInvalidRole
+	}
+	err := d.checkCommittee(ic)
+	if err != nil {
+		return err
+	}
+	ks := keys.Unique()
+	if ks.Len() == 0 {
+		return ErrEmptyNodeList
+	}
+	if ks.Len() > MaxNodeCount {
+		return ErrLargeNodeList
+	}
+	index := ic.PersistingBlock().Index + 1
+	if r == noderoles.Validator {
+		index += 1
+	}
+	committee, err := d.GetCommitteeAddress(ic.Dao(), index)
+	if err != nil {
+		return err
+	}
+	if ic.Sender() != committee {
+		return ErrInvalidSender
+	}
+	sort.Sort(ks)
+	ic.Dao().PutStorageItem(d.Address, createRoleKey(r, index), ks.Bytes())
 	return nil
 }
 
@@ -189,74 +251,24 @@ func (d *Designate) GetAdminAddresses(s *dao.Simple, index uint32) ([]common.Add
 	return addrs, nil
 }
 
-func (d *Designate) designateAsRole(ic InteropContext, r noderoles.Role, keys keys.PublicKeys) error {
-	if !noderoles.IsValid(r) {
-		return ErrInvalidRole
-	}
-	err := checkCommittee(ic)
-	if err != nil {
-		return err
-	}
-	ks := keys.Unique()
-	if ks.Len() == 0 {
-		return ErrEmptyNodeList
-	}
-	if ks.Len() > MaxNodeCount {
-		return ErrLargeNodeList
-	}
-	index := ic.PersistingBlock().Index + 1
-	if r == noderoles.Validator {
-		index += 1
-	}
-	committee, err := d.GetCommitteeAddress(ic.Dao(), index)
-	if err != nil {
-		return err
-	}
-	if ic.Sender() != committee {
-		return ErrInvalidSender
-	}
-	sort.Sort(ks)
-	ic.Dao().PutStorageItem(d.Address, createRoleKey(r, index), ks.Bytes())
-	return nil
-}
-
-func (g *Designate) designateRawAsRole(ic InteropContext, input []byte) error {
-	if len(input) < 35 {
-		return ErrInvalidInput
-	}
-	r := noderoles.Role(input[0])
-	pks := keys.PublicKeys{}
-	err := pks.DecodeBytes(input[1:])
-	if err != nil {
-		return err
-	}
-	return g.designateAsRole(ic, r, pks)
-}
-
-func (g *Designate) RequiredGas(ic InteropContext, input []byte) uint64 {
-	if len(input) < 1 {
+func (d *Designate) RequiredGas(ic InteropContext, input []byte) uint64 {
+	if len(input) < 4 {
 		return 0
 	}
-	switch input[0] {
-	case 0x00:
+	method, err := d.Abi.MethodById(input[:4])
+	if err != nil {
 		return 0
-	case 0x01:
+	}
+	switch method.Name {
+	case "initialize":
+		return 0
+	case "designateAsRole":
 		return defaultNativeWriteFee
 	default:
 		return 0
 	}
 }
 
-func (g *Designate) Run(ic InteropContext, input []byte) ([]byte, error) {
-	if len(input) < 1 {
-		return nil, ErrEmptyInput
-	}
-	switch input[0] {
-	case 0x00:
-		return []byte{}, g.initialize(ic)
-	case 0x01:
-		return []byte{}, g.designateRawAsRole(ic, input[1:])
-	default:
-		return nil, ErrInvalidMethodID
-	}
+func (d *Designate) Run(ic InteropContext, input []byte) ([]byte, error) {
+	return contractCall(d, &d.NativeContract, ic, input)
 }

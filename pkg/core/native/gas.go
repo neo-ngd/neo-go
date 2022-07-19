@@ -44,7 +44,12 @@ func NewGAS(init uint64) *GAS {
 
 	g.symbol = "GAS"
 	g.decimals = GASDecimal
-
+	gasAbi, contractCalls, err := constructAbi(g)
+	if err != nil {
+		panic(err)
+	}
+	g.Abi = *gasAbi
+	g.ContractCalls = contractCalls
 	return g
 }
 
@@ -52,7 +57,7 @@ func makeAccountKey(h common.Address) []byte {
 	return makeAddressKey(prefixAccount, h)
 }
 
-func (g *GAS) initialize(ic InteropContext) error {
+func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
@@ -175,11 +180,15 @@ func (g *GAS) GetBalance(d *dao.Simple, h common.Address) *big.Int {
 }
 
 func (g *GAS) RequiredGas(ic InteropContext, input []byte) uint64 {
-	if len(input) < 1 {
+	if len(input) < 4 {
 		return 0
 	}
-	switch input[0] {
-	case 0x00:
+	method, err := g.Abi.MethodById(input[:4])
+	if err != nil {
+		return 0
+	}
+	switch method.Name {
+	case "initialize":
 		return 0
 	default:
 		return 0
@@ -187,15 +196,7 @@ func (g *GAS) RequiredGas(ic InteropContext, input []byte) uint64 {
 }
 
 func (g *GAS) Run(ic InteropContext, input []byte) ([]byte, error) {
-	if len(input) < 1 {
-		return nil, ErrEmptyInput
-	}
-	switch input[0] {
-	case 0x00:
-		return nil, g.initialize(ic)
-	default:
-		return nil, ErrInvalidMethodID
-	}
+	return contractCall(g, &g.NativeContract, ic, input)
 }
 
 type GasState struct {

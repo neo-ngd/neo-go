@@ -29,6 +29,21 @@ func (c *Client) IsBlocked(address common.Address) (bool, error) {
 	return resp, nil
 }
 
+func (c *Client) CalculateGas(tx *transaction.NeoTx) (uint64, error) {
+	b, err := tx.Bytes()
+	if err != nil {
+		return 0, err
+	}
+	var (
+		params = request.NewRawParams(hexutil.Bytes(b))
+		resp   = new(result.NetworkFee)
+	)
+	if err := c.performRequest("calculategas", params, resp); err != nil {
+		return 0, err
+	}
+	return resp.Value, nil
+}
+
 // GetBestBlockHash returns the hash of the tallest block in the main chain.
 func (c *Client) GetBestBlockHash() (common.Hash, error) {
 	var resp = common.Hash{}

@@ -3,6 +3,7 @@ package native
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -23,9 +24,10 @@ func TestEndian(t *testing.T) {
 }
 
 type interopContext struct {
-	D     *dao.Simple
-	S     common.Address
-	Index uint32
+	D         *dao.Simple
+	S         common.Address
+	Index     uint32
+	Contracts *Contracts
 }
 
 func (ic interopContext) Sender() common.Address {
@@ -33,6 +35,9 @@ func (ic interopContext) Sender() common.Address {
 }
 
 func (ic interopContext) Natives() *Contracts {
+	if ic.Contracts != nil {
+		return ic.Contracts
+	}
 	return &Contracts{}
 }
 
@@ -60,7 +65,7 @@ func TestCommitteeRole(t *testing.T) {
 	ic := interopContext{
 		D: dao,
 	}
-	err = des.initialize(ic)
+	err = des.ContractCall_initialize(ic)
 	assert.NoError(t, err)
 	ks, err := des.GetDesignatedByRole(dao, noderoles.Committee, 1)
 	assert.NoError(t, err)
@@ -112,7 +117,7 @@ func TestValidatorRole(t *testing.T) {
 	ic := interopContext{
 		D: dao,
 	}
-	err = des.initialize(ic)
+	err = des.ContractCall_initialize(ic)
 	assert.NoError(t, err)
 	ks, err := des.GetDesignatedByRole(dao, noderoles.Validator, 1)
 	assert.NoError(t, err)
@@ -147,4 +152,55 @@ func TestValidatorRole(t *testing.T) {
 	ks, err = des.GetDesignatedByRole(dao, noderoles.Validator, 5)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, ks.Len())
+}
+
+func TestDesignateContractCall(t *testing.T) {
+	dao := dao.NewSimple(storage.NewMemoryStore())
+	des := NewDesignate(config.ProtocolConfiguration{
+		StandbyValidators: []string{
+			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+		},
+		StandbyCommittee: []string{
+			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+		},
+	})
+	ic := interopContext{
+		D: dao,
+	}
+	err := des.ContractCall_initialize(ic)
+	assert.NoError(t, err)
+	ic.S, _ = des.GetCommitteeAddress(dao, 1)
+	fn, ok := des.Abi.Methods["designateAsRole"]
+	assert.True(t, ok)
+	input := append(fn.ID, []byte{0, 0}...)
+	_, err = des.Run(ic, input)
+	assert.NotNil(t, err)
+
+	k, err := keys.NewPublicKeyFromString("0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4")
+	ks := keys.PublicKeys{k}
+	assert.NoError(t, err)
+	input, err = des.Abi.Pack("designateAsRole", uint8(0), ks.Bytes())
+	assert.NoError(t, err)
+	_, err = des.Run(ic, input)
+	assert.NoError(t, err)
+	ks, err = des.GetDesignatedByRole(dao, noderoles.Validator, 2)
+	assert.NoError(t, err)
+	assert.Equal(t, "0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4", hex.EncodeToString(ks[0].Bytes()))
+}
+
+func TestMarshalNativeAbi(t *testing.T) {
+	des := NewDesignate(config.ProtocolConfiguration{
+		StandbyValidators: []string{
+			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+		},
+		StandbyCommittee: []string{
+			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+		},
+	})
+	b, err := json.Marshal(des)
+	assert.NoError(t, err)
+	t.Log(string(b))
+	d := Designate{}
+	err = json.Unmarshal(b, &d)
+	assert.NoError(t, err)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/neo-ngd/neo-go/cli/options"
 	"github.com/neo-ngd/neo-go/cli/wallet"
 	"github.com/neo-ngd/neo-go/pkg/core/native"
+	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
 	"github.com/neo-ngd/neo-go/pkg/core/native/noderoles"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/urfave/cli"
@@ -69,7 +70,13 @@ func designate(ctx *cli.Context, role noderoles.Role) error {
 	if newCommittees.Len() > native.MaxNodeCount {
 		return cli.NewExitError(fmt.Errorf("too many public keys"), 1)
 	}
-	data := []byte{0x01, byte(role)}
-	data = append(data, (&newCommittees).Bytes()...)
+	dabi, err := getNativeContract(ctx, nativenames.Designation)
+	if err != nil {
+		return err
+	}
+	data, err := dabi.Pack("designateAsRole", uint8(role), (&newCommittees).Bytes())
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("can't pack parameters: %w", err), 1)
+	}
 	return makeCommitteeTx(ctx, native.DesignationAddress, data)
 }

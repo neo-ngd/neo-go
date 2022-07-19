@@ -19,8 +19,6 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/crypto"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
-	"github.com/neo-ngd/neo-go/pkg/evm"
-	"github.com/neo-ngd/neo-go/pkg/rpc/response/result"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
 )
@@ -203,10 +201,10 @@ func NewCommands() []cli.Command {
 				Subcommands: newNativeTokenCommands(),
 			},
 			{
-				Name:   "sign",
-				Usage:  "sign sign_context",
+				Name:      "sign",
+				Usage:     "sign sign_context",
 				UsageText: "sign --wallet <path> --rpc-endpoint <node> [--timeout <time>] --context <contextJson>",
-				Action: sign,
+				Action:    sign,
 				Flags: append(listFlags, cli.StringFlag{
 					Name:  "context, c",
 					Usage: "sign a context",
@@ -684,6 +682,7 @@ func sign(ctx *cli.Context) error {
 func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to common.Address, value *big.Int, data []byte) error {
 	var err error
 	var pks *keys.PublicKeys
+	var script []byte
 	isMulti := false
 	m := 0
 	signers := []*wallet.Account{}
@@ -715,9 +714,14 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 		isMulti = true
 		pks = &committee
 		m = keys.GetMajorityHonestNodeCount(pks.Len())
+		script, err = committee.CreateMajorityMultiSigRedeemScript()
+		if err != nil {
+			return cli.NewExitError(fmt.Errorf("can't create committee multi-sig script: %w", err), 1)
+		}
 	}
 	if isMulti {
 		if pks == nil {
+			script = signers[0].Script
 			pks, m, err = crypto.ParseMultiVerificationScript(signers[0].Script)
 			if err != nil {
 				return cli.NewExitError(fmt.Errorf("can't parse multi-sig account script: %w", err), 1)
@@ -725,7 +729,7 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 			signers = signers[1:]
 		}
 		for _, ac := range wall.Accounts {
-			if ac.Script[0] != 0 {
+			if ac.IsMultiSig() {
 				continue
 			}
 			pk, err := crypto.ParseVerificationScript(ac.Script)
@@ -739,7 +743,10 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 				break
 			}
 		}
+	} else {
+		script = signers[0].Script
 	}
+
 	for _, acc := range signers {
 		pass, err := input.ReadPassword(fmt.Sprintf("Enter %s password > ", acc.Address))
 		if err != nil {
@@ -758,34 +765,20 @@ func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to commo
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed get fee per byte: %w", err), 1)
 	}
-	script, err := pks.CreateMultiSigVerificationScript(m)
-	if err != nil {
-		return cli.NewExitError(fmt.Errorf("can't create multisig verification script: %w", err), 1)
-	}
 	t := &transaction.NeoTx{
-		From: from,
 		Nonce:    nonce,
 		GasPrice: gasPrice,
 		Gas:      0,
+		From:     from,
 		To:       &to,
 		Value:    value,
 		Data:     data,
-		Witness:  transaction.Witness {
-			VerificationScript : script,
+		Witness: transaction.Witness{
+			VerificationScript: script,
 		},
 	}
 	tx := transaction.NewTx(t)
-	gas, err := c.Eth_EstimateGas(&result.TransactionObject{
-		From:     t.From,
-		To:       t.To,
-		Data:     t.Data,
-		Value:    t.Value,
-		GasPrice: t.GasPrice,
-		Gas:      evm.TestGas,
-		Witness: &transaction.Witness {
-			VerificationScript : script,
-		},
-	})
+	gas, err := c.CalculateGas(t)
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed estimate gas fee: %w", err), 1)
 	}

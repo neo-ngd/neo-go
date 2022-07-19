@@ -2,6 +2,7 @@ package request
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -356,6 +357,15 @@ func (p *Param) GetBytesHex() ([]byte, error) {
 	}
 	s = strings.TrimPrefix(s, "0x")
 	return hex.DecodeString(s)
+}
+
+func (p *Param) GetBytesBase64() ([]byte, error) {
+	s, err := p.GetString()
+	if err != nil {
+		return nil, err
+	}
+
+	return base64.StdEncoding.DecodeString(s)
 }
 
 // IsNull returns whether parameter represents JSON nil value.

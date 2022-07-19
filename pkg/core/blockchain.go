@@ -1529,7 +1529,7 @@ func (bc *Blockchain) GetFeePerByte() uint64 {
 
 func (bc *Blockchain) GetGasPrice() *big.Int {
 	if bc.BlockHeight() == 0 {
-		return big.NewInt(native.DefaultGasPrice)
+		return big.NewInt(int64(native.DefaultGasPrice))
 	}
 	return bc.contracts.Policy.GetGasPriceInternal(bc.dao)
 }
