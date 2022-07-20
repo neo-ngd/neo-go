@@ -84,3 +84,9 @@ func TestBlockAccount(t *testing.T) {
 	r := p.IsBlocked(dao, common.Address{})
 	assert.True(t, r)
 }
+
+func TestJson(t *testing.T) {
+	p := NewPolicy()
+	b, _ := json.Marshal(p)
+	t.Log(string(b))
+}

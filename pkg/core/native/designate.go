@@ -42,7 +42,9 @@ func NewDesignate(cfg config.ProtocolConfiguration) *Designate {
 		NativeContract: state.NativeContract{
 			Name: nativenames.Designation,
 			Contract: state.Contract{
-				Address: DesignationAddress,
+				Address:  DesignationAddress,
+				CodeHash: hash.Keccak256(DesignationAddress[:]),
+				Code:     DesignationAddress[:],
 			},
 		},
 		StandbyCommittee: standbyCommittee,

@@ -29,8 +29,9 @@ func NewManagement() *Management {
 		NativeContract: state.NativeContract{
 			Name: nativenames.Management,
 			Contract: state.Contract{
-				Address: ManagementAddress,
-				Code:    []byte{},
+				Address:  ManagementAddress,
+				CodeHash: hash.Keccak256(ManagementAddress[:]),
+				Code:     ManagementAddress[:],
 			},
 		},
 	}
@@ -41,6 +42,20 @@ func NewManagement() *Management {
 	m.Abi = *mAbi
 	m.ContractCalls = contractCalls
 	return m
+}
+
+func (m *Management) ContractCall_initialize(ic InteropContext) error {
+	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
+		return ErrInitialize
+	}
+	for _, native := range ic.Natives().Contracts {
+		item, err := io.ToByteArray(&native.Contract)
+		if err != nil {
+			return err
+		}
+		ic.Dao().PutStorageItem(m.Address, createContractKey(native.Address), item)
+	}
+	return nil
 }
 
 func (m *Management) GetContract(s *dao.Simple, addr common.Address) *state.Contract {
@@ -104,4 +119,24 @@ func (m *Management) Destroy(s *dao.Simple, addr common.Address) bool {
 	k := createContractKey(addr)
 	s.DeleteStorageItem(addr, k)
 	return true
+}
+
+func (m *Management) RequiredGas(ic InteropContext, input []byte) uint64 {
+	if len(input) < 4 {
+		return 0
+	}
+	method, err := m.Abi.MethodById(input[:4])
+	if err != nil {
+		return 0
+	}
+	switch method.Name {
+	case "initialize":
+		return 0
+	default:
+		return 0
+	}
+}
+
+func (m *Management) Run(ic InteropContext, input []byte) ([]byte, error) {
+	return contractCall(m, &m.NativeContract, ic, input)
 }

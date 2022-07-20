@@ -248,7 +248,7 @@ func (bc *Blockchain) init() error {
 		bc.dao.PutVersion(ver)
 		bc.dao.Version = ver
 		bc.persistent.Version = ver
-		genesisBlock, err := createGenesisBlock(bc.config)
+		genesisBlock, err := createGenesisBlock()
 		if err != nil {
 			return err
 		}
@@ -298,7 +298,7 @@ func (bc *Blockchain) init() error {
 		if len(bc.headerHashes) > 0 {
 			targetHash = bc.headerHashes[len(bc.headerHashes)-1]
 		} else {
-			genesisBlock, err := createGenesisBlock(bc.config)
+			genesisBlock, err := createGenesisBlock()
 			if err != nil {
 				return err
 			}

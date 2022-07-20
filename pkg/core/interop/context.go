@@ -62,6 +62,10 @@ func NewContext(block *block.Block, tx *transaction.Transaction, sdb *statedb.St
 				nativeContract: chain.Contracts().GAS,
 				ic:             ctx,
 			},
+			native.ManagementAddress: nativeWrapper{
+				nativeContract: chain.Contracts().Management,
+				ic:             ctx,
+			},
 		})
 	return ctx, nil
 }

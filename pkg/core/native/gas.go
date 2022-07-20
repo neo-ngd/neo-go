@@ -10,6 +10,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativeids"
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
 	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
@@ -35,8 +36,9 @@ func NewGAS(init uint64) *GAS {
 		NativeContract: state.NativeContract{
 			Name: nativenames.GAS,
 			Contract: state.Contract{
-				Address: GASAddress,
-				Code:    []byte{},
+				Address:  GASAddress,
+				CodeHash: hash.Keccak256(GASAddress[:]),
+				Code:     GASAddress[:],
 			},
 		},
 		initialSupply: init,
@@ -61,9 +63,19 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
-	addr, err := ic.Natives().Designate.GetValidatorAddress(ic.Dao(), 0)
+	validators, err := ic.Natives().Designate.GetValidators(ic.Dao(), 0)
 	if err != nil {
 		return err
+	}
+	var addr common.Address
+	if validators.Len() == 1 {
+		addr = validators[0].Address()
+	} else {
+		script, err := validators.CreateDefaultMultiSigRedeemScript()
+		if err != nil {
+			return err
+		}
+		addr = hash.Hash160(script)
 	}
 	wei := big.NewInt(1).Exp(big.NewInt(10), big.NewInt(GASDecimal), nil)
 	total := big.NewInt(1).Mul(big.NewInt(int64(g.initialSupply)), wei)

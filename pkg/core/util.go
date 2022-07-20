@@ -6,7 +6,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/native"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
@@ -15,7 +14,7 @@ import (
 )
 
 // createGenesisBlock creates a genesis block based on the given configuration.
-func createGenesisBlock(cfg config.ProtocolConfiguration) (*block.Block, error) {
+func createGenesisBlock() (*block.Block, error) {
 	base := block.Header{
 		Version:   0,
 		PrevHash:  common.Hash{},
@@ -52,6 +51,13 @@ func createGenesisBlock(cfg config.ProtocolConfiguration) (*block.Block, error) 
 				GasPrice: gasPrice,
 				Gas:      gas,
 				To:       &native.GASAddress,
+				Data:     initData,
+				Value:    big.NewInt(0),
+			}),
+			transaction.NewTx(&types.LegacyTx{
+				GasPrice: gasPrice,
+				Gas:      gas,
+				To:       &native.ManagementAddress,
 				Data:     initData,
 				Value:    big.NewInt(0),
 			}),

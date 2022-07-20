@@ -10,6 +10,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativeids"
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
 	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 )
 
 const (
@@ -36,8 +37,9 @@ func NewPolicy() *Policy {
 		NativeContract: state.NativeContract{
 			Name: nativenames.Policy,
 			Contract: state.Contract{
-				Address: PolicyAddress,
-				Code:    []byte{},
+				Address:  PolicyAddress,
+				CodeHash: hash.Keccak256(PolicyAddress[:]),
+				Code:     PolicyAddress[:],
 			},
 		},
 	}
