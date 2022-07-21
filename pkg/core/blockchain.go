@@ -780,7 +780,6 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		cumulativeGas += gasUsed
 		for _, log := range logs {
 			log.BlockHash = block.Hash()
-			log.BlockNumber = uint64(block.Index)
 			log.TxHash = tx.Hash()
 			log.TxIndex = uint(i)
 			log.Index = logIndex

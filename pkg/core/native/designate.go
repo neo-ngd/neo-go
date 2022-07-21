@@ -64,6 +64,7 @@ func (d *Designate) ContractCall_initialize(ic InteropContext) error {
 		return ErrInitialize
 	}
 	ic.Dao().PutStorageItem(d.Address, createRoleKey(noderoles.Committee, 0), d.StandbyCommittee.Bytes())
+	log(ic, d.Address, d.StandbyCommittee.Bytes(), d.Abi.Events["initialize"].ID, common.BytesToHash([]byte{byte(noderoles.Committee)}))
 	return nil
 }
 
@@ -74,7 +75,11 @@ func (d *Designate) ContractCall_designateAsRole(ic InteropContext, role byte, r
 	if err != nil {
 		return err
 	}
-	return d.designateAsRole(ic, r, *pks)
+	err = d.designateAsRole(ic, r, *pks)
+	if err == nil {
+		log(ic, d.Address, rawPks, d.Abi.Events["designateAsRole"].ID, common.BytesToHash([]byte{role}))
+	}
+	return err
 }
 
 func (d *Designate) checkCommittee(ic InteropContext) error {

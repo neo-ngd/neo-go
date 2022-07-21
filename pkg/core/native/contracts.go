@@ -8,13 +8,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/state"
 )
 
 const (
-	defaultNativeReadFee     = 1000
-	defaultNativeWriteFee    = 10000
+	defaultNativeReadFee     = 200
+	defaultNativeWriteFee    = 5000
 	contractMethodNamePrefix = "ContractCall_"
 )
 
@@ -146,6 +147,9 @@ func constructAbi(any interface{}) (*abi.ABI, map[string]reflect.Value, error) {
 				}
 			}
 			contractCalls[name] = method.Func
+			if len(inputs) > 0 {
+				a.Events[name] = abi.NewEvent(name, name, false, inputs)
+			}
 			a.Methods[name] = abi.NewMethod(name, name, abi.Function, "nonpayable", false, false, inputs, outputs)
 		}
 	}
@@ -190,4 +194,13 @@ func contractCall(contract interface{}, nativeContract *state.NativeContract, ic
 		return nil, ErrInvalidContractCallReturn
 	}
 	return r, nil
+}
+
+func log(ic InteropContext, address common.Address, data []byte, topics ...common.Hash) {
+	ic.Log(&types.Log{
+		Address:     address,
+		Topics:      topics,
+		Data:        data,
+		BlockNumber: uint64(ic.PersistingBlock().Index),
+	})
 }

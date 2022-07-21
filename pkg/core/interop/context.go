@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
@@ -68,6 +69,10 @@ func NewContext(block *block.Block, tx *transaction.Transaction, sdb *statedb.St
 			},
 		})
 	return ctx, nil
+}
+
+func (c Context) Log(log *types.Log) {
+	c.sdb.AddLog(log)
 }
 
 func (c Context) Sender() common.Address {

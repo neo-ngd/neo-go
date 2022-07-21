@@ -9,6 +9,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
 	"github.com/neo-ngd/neo-go/pkg/core/storage"
+	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,6 +84,12 @@ func TestBlockAccount(t *testing.T) {
 
 	r := p.IsBlocked(dao, common.Address{})
 	assert.True(t, r)
+}
+
+func TestEvent(t *testing.T) {
+	p := NewPolicy()
+	e := p.Abi.Events["setFeePerByte"]
+	assert.Equal(t, hash.Keccak256([]byte("setFeePerByte(uint64)")), e.ID)
 }
 
 func TestJson(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
@@ -28,6 +29,11 @@ type interopContext struct {
 	S         common.Address
 	Index     uint32
 	Contracts *Contracts
+	L         []*types.Log
+}
+
+func (ic interopContext) Log(l *types.Log) {
+	ic.L[0] = l
 }
 
 func (ic interopContext) Sender() common.Address {
@@ -112,6 +118,7 @@ func TestDesignateContractCall(t *testing.T) {
 	})
 	ic := interopContext{
 		D: dao,
+		L: make([]*types.Log, 1),
 	}
 	err := des.ContractCall_initialize(ic)
 	assert.NoError(t, err)
@@ -129,6 +136,13 @@ func TestDesignateContractCall(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = des.Run(ic, input)
 	assert.NoError(t, err)
+
+	assert.Equal(t, ic.L[0].Address, des.Address)
+	assert.Equal(t, 2, len(ic.L[0].Topics))
+	assert.Equal(t, des.Abi.Events["designateAsRole"].ID, ic.L[0].Topics[0])
+	assert.Equal(t, common.BytesToHash([]byte{byte(noderoles.Committee)}), ic.L[0].Topics[1])
+	assert.Equal(t, ks.Bytes(), ic.L[0].Data)
+
 	ks, err = des.GetDesignatedByRole(dao, noderoles.Committee, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, "0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4", hex.EncodeToString(ks[0].Bytes()))

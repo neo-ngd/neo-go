@@ -61,10 +61,15 @@ func (p *Policy) ContractCall_initialize(ic InteropContext) error {
 		return ErrInitialize
 	}
 	item := make([]byte, 8)
+
 	binary.BigEndian.PutUint64(item, DefaultGasPrice)
 	ic.Dao().PutStorageItem(p.Address, []byte{PrefixGasPrice}, item)
+	log(ic, p.Address, item, p.Abi.Events["setGasPrice"].ID)
+
 	binary.BigEndian.PutUint64(item, DefaultFeePerByte)
 	ic.Dao().PutStorageItem(p.Address, []byte{PrefixFeePerByte}, item)
+	log(ic, p.Address, item, p.Abi.Events["setFeePerByte"].ID)
+
 	return nil
 }
 
@@ -76,6 +81,7 @@ func (p *Policy) ContractCall_setFeePerByte(ic InteropContext, fee uint64) error
 	item := make([]byte, 8)
 	binary.BigEndian.PutUint64(item, fee)
 	ic.Dao().PutStorageItem(p.Address, []byte{PrefixFeePerByte}, item)
+	log(ic, p.Address, item, p.Abi.Events["setFeePerByte"].ID)
 	return nil
 }
 
@@ -87,6 +93,7 @@ func (p *Policy) ContractCall_setGasPrice(ic InteropContext, gasPrice uint64) er
 	item := make([]byte, 8)
 	binary.BigEndian.PutUint64(item, gasPrice)
 	ic.Dao().PutStorageItem(p.Address, []byte{PrefixGasPrice}, item)
+	log(ic, p.Address, item, p.Abi.Events["setGasPrice"].ID)
 	return nil
 }
 
@@ -104,6 +111,7 @@ func (p *Policy) ContractCall_blockAccount(ic InteropContext, address common.Add
 		return errors.New("already blocked")
 	}
 	ic.Dao().PutStorageItem(p.Address, key, []byte{1})
+	log(ic, p.Address, nil, p.Abi.Events["blockAccount"].ID, common.BytesToHash(address[:]))
 	return nil
 }
 
@@ -121,6 +129,7 @@ func (p *Policy) ContractCall_unblockAccount(ic InteropContext, address common.A
 		return errors.New("account isn't blocked")
 	}
 	ic.Dao().DeleteStorageItem(p.Address, key)
+	log(ic, p.Address, nil, p.Abi.Events["unblockAccount"].ID, common.BytesToHash(address[:]))
 	return nil
 }
 

@@ -79,7 +79,11 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	}
 	wei := big.NewInt(1).Exp(big.NewInt(10), big.NewInt(GASDecimal), nil)
 	total := big.NewInt(1).Mul(big.NewInt(int64(g.initialSupply)), wei)
-	return g.addTokens(ic.Dao(), addr, total)
+	err = g.addTokens(ic.Dao(), addr, total)
+	if err == nil {
+		log(ic, g.Address, total.Bytes(), g.Abi.Events["initialize"].ID)
+	}
+	return err
 }
 
 func (g *GAS) increaseBalance(gs *GasState, amount *big.Int) error {

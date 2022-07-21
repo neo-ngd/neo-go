@@ -68,7 +68,7 @@ type fieldJson struct {
 }
 
 func abiToFields(nabi abi.ABI) []fieldJson {
-	fields := make([]fieldJson, len(nabi.Methods))
+	fields := make([]fieldJson, len(nabi.Methods)+len(nabi.Events))
 	i := 0
 	for _, method := range nabi.Methods {
 		fields[i] = fieldJson{
@@ -88,6 +88,21 @@ func abiToFields(nabi abi.ABI) []fieldJson {
 			fields[i].Inputs[j] = argJson{
 				Name: output.Name,
 				Type: output.Type.String(),
+			}
+		}
+		i++
+	}
+	for _, event := range nabi.Events {
+		fields[i] = fieldJson{
+			Type:      "event",
+			Name:      event.Name,
+			Inputs:    make([]argJson, len(event.Inputs)),
+			Anonymous: false,
+		}
+		for j, input := range event.Inputs {
+			fields[i].Inputs[j] = argJson{
+				Name: input.Name,
+				Type: input.Type.String(),
 			}
 		}
 		i++
