@@ -11,6 +11,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
 	"github.com/neo-ngd/neo-go/pkg/core/state"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/dbft/block"
 	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
@@ -26,12 +27,13 @@ var (
 
 type GAS struct {
 	state.NativeContract
+	cs            *Contracts
 	symbol        string
 	decimals      int64
 	initialSupply uint64
 }
 
-func NewGAS(init uint64) *GAS {
+func NewGAS(cs *Contracts, init uint64) *GAS {
 	g := &GAS{
 		NativeContract: state.NativeContract{
 			Name: nativenames.GAS,
@@ -41,6 +43,7 @@ func NewGAS(init uint64) *GAS {
 				Code:     GASAddress[:],
 			},
 		},
+		cs:            cs,
 		initialSupply: init,
 	}
 
@@ -63,7 +66,7 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
-	validators, err := ic.Natives().Designate.GetValidators(ic.Dao(), 0)
+	validators, err := g.cs.Designate.GetValidators(ic.Dao(), 0)
 	if err != nil {
 		return err
 	}
@@ -86,6 +89,10 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	return err
 }
 
+func (g *GAS) OnPersist(d *dao.Simple, block *block.Block) {
+
+}
+
 func (g *GAS) increaseBalance(gs *GasState, amount *big.Int) error {
 	if amount.Sign() == -1 && gs.Balance.CmpAbs(amount) == -1 {
 		return errors.New("insufficient funds")
@@ -94,20 +101,20 @@ func (g *GAS) increaseBalance(gs *GasState, amount *big.Int) error {
 	return nil
 }
 
-func (g *GAS) getTotalSupply(s *dao.Simple) *big.Int {
-	si := s.GetStorageItem(g.Address, totalSupplyKey)
+func (g *GAS) getTotalSupply(d *dao.Simple) *big.Int {
+	si := d.GetStorageItem(g.Address, totalSupplyKey)
 	if si == nil {
 		return nil
 	}
 	return big.NewInt(0).SetBytes(si)
 }
 
-func (g *GAS) saveTotalSupply(s *dao.Simple, supply *big.Int) {
-	s.PutStorageItem(g.Address, totalSupplyKey, supply.Bytes())
+func (g *GAS) saveTotalSupply(d *dao.Simple, supply *big.Int) {
+	d.PutStorageItem(g.Address, totalSupplyKey, supply.Bytes())
 }
 
-func (g *GAS) getGasState(s *dao.Simple, key []byte) (*GasState, error) {
-	si := s.GetStorageItem(g.Address, key)
+func (g *GAS) getGasState(d *dao.Simple, key []byte) (*GasState, error) {
+	si := d.GetStorageItem(g.Address, key)
 	if si == nil {
 		return nil, nil
 	}
@@ -119,21 +126,21 @@ func (g *GAS) getGasState(s *dao.Simple, key []byte) (*GasState, error) {
 	return gs, nil
 }
 
-func (g *GAS) putGasState(s *dao.Simple, key []byte, gs *GasState) error {
+func (g *GAS) putGasState(d *dao.Simple, key []byte, gs *GasState) error {
 	data, err := io.ToByteArray(gs)
 	if err != nil {
 		return err
 	}
-	s.PutStorageItem(g.Address, key, data)
+	d.PutStorageItem(g.Address, key, data)
 	return nil
 }
 
-func (g *GAS) addTokens(s *dao.Simple, h common.Address, amount *big.Int) error {
+func (g *GAS) addTokens(d *dao.Simple, h common.Address, amount *big.Int) error {
 	if amount.Sign() == 0 {
 		return nil
 	}
 	key := makeAccountKey(h)
-	gs, err := g.getGasState(s, key)
+	gs, err := g.getGasState(d, key)
 	if err != nil {
 		return err
 	}
@@ -147,30 +154,30 @@ func (g *GAS) addTokens(s *dao.Simple, h common.Address, amount *big.Int) error 
 		return err
 	}
 	if gs != nil && ngs.Balance.Sign() == 0 {
-		s.DeleteStorageItem(g.Address, key)
+		d.DeleteStorageItem(g.Address, key)
 	} else {
-		err = g.putGasState(s, key, ngs)
+		err = g.putGasState(d, key, ngs)
 		if err != nil {
 			return err
 		}
 	}
-	supply := g.getTotalSupply(s)
+	supply := g.getTotalSupply(d)
 	if supply == nil {
 		supply = big.NewInt(0)
 	}
 	supply.Add(supply, amount)
-	g.saveTotalSupply(s, supply)
+	g.saveTotalSupply(d, supply)
 	return nil
 }
 
-func (g *GAS) AddBalance(s *dao.Simple, h common.Address, amount *big.Int) {
-	g.addTokens(s, h, amount)
+func (g *GAS) AddBalance(d *dao.Simple, h common.Address, amount *big.Int) {
+	g.addTokens(d, h, amount)
 }
 
-func (g *GAS) SubBalance(s *dao.Simple, h common.Address, amount *big.Int) {
+func (g *GAS) SubBalance(d *dao.Simple, h common.Address, amount *big.Int) {
 	neg := big.NewInt(0)
 	neg.Neg(amount)
-	g.addTokens(s, h, neg)
+	g.addTokens(d, h, neg)
 }
 
 func (g *GAS) balanceFromBytes(si *state.StorageItem) (*big.Int, error) {

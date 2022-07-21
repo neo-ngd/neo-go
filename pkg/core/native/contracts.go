@@ -10,7 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/core/dao"
 	"github.com/neo-ngd/neo-go/pkg/core/state"
+	"github.com/neo-ngd/neo-go/pkg/dbft/block"
 )
 
 const (
@@ -46,15 +48,15 @@ func NewContracts(cfg config.ProtocolConfiguration) *Contracts {
 	cs := &Contracts{
 		Contracts: make([]state.NativeContract, 0, 4),
 	}
-	cs.GAS = NewGAS(cfg.InitialGASSupply)
+	cs.GAS = NewGAS(cs, cfg.InitialGASSupply)
 	cs.Contracts = append(cs.Contracts, cs.GAS.NativeContract)
 	cs.Ledger = NewLedger()
 	cs.Contracts = append(cs.Contracts, cs.Ledger.NativeContract)
-	cs.Management = NewManagement()
+	cs.Management = NewManagement(cs)
 	cs.Contracts = append(cs.Contracts, cs.Management.NativeContract)
 	cs.Designate = NewDesignate(cfg)
 	cs.Contracts = append(cs.Contracts, cs.Designate.NativeContract)
-	cs.Policy = NewPolicy()
+	cs.Policy = NewPolicy(cs)
 	cs.Contracts = append(cs.Contracts, cs.Policy.NativeContract)
 	return cs
 }
@@ -67,6 +69,10 @@ func (cs *Contracts) ByName(name string) *state.NativeContract {
 		}
 	}
 	return nil
+}
+
+func (cs *Contracts) OnPersist(d *dao.Simple, block *block.Block) {
+	cs.GAS.OnPersist(d, block)
 }
 
 func convertType(in reflect.Type) (abi.Type, error) {

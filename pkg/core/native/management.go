@@ -18,13 +18,14 @@ var ManagementAddress common.Address = common.Address(common.BytesToAddress([]by
 
 type Management struct {
 	state.NativeContract
+	cs *Contracts
 }
 
 func createContractKey(h common.Address) []byte {
 	return makeAddressKey(prefixContract, h)
 }
 
-func NewManagement() *Management {
+func NewManagement(cs *Contracts) *Management {
 	m := &Management{
 		NativeContract: state.NativeContract{
 			Name: nativenames.Management,
@@ -34,6 +35,7 @@ func NewManagement() *Management {
 				Code:     ManagementAddress[:],
 			},
 		},
+		cs: cs,
 	}
 	mAbi, contractCalls, err := constructAbi(m)
 	if err != nil {
@@ -48,7 +50,7 @@ func (m *Management) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
-	for _, native := range ic.Natives().Contracts {
+	for _, native := range m.cs.Contracts {
 		item, err := io.ToByteArray(&native.Contract)
 		if err != nil {
 			return err

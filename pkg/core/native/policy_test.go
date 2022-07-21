@@ -1,11 +1,10 @@
 package native
 
 import (
-	"encoding/hex"
-	"encoding/json"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
 	"github.com/neo-ngd/neo-go/pkg/core/storage"
@@ -19,13 +18,14 @@ func TestSetGasPrice(t *testing.T) {
 		StandbyCommittee: []string{
 			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
 		},
+		ValidatorsCount: 1,
 	})
-	p := NewPolicy()
+	p := NewPolicy(&Contracts{
+		Designate: des,
+	})
 	ic := interopContext{
 		D: dao,
-		Contracts: &Contracts{
-			Designate: des,
-		},
+		L: make([]*types.Log, 1),
 	}
 	err := des.ContractCall_initialize(ic)
 	assert.NoError(t, err)
@@ -36,7 +36,6 @@ func TestSetGasPrice(t *testing.T) {
 	assert.True(t, ok)
 	input := append(fn.ID, []byte{0}...)
 	_, err = p.Run(ic, input)
-	t.Log(err)
 	assert.NotNil(t, err)
 
 	input, err = p.Abi.Pack("setGasPrice", uint64(1))
@@ -54,15 +53,14 @@ func TestBlockAccount(t *testing.T) {
 		StandbyCommittee: []string{
 			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
 		},
+		ValidatorsCount: 1,
 	})
-	p := NewPolicy()
-	b, _ := json.Marshal(p.Abi)
-	t.Log(string(b))
+	p := NewPolicy(&Contracts{
+		Designate: des,
+	})
 	ic := interopContext{
 		D: dao,
-		Contracts: &Contracts{
-			Designate: des,
-		},
+		L: make([]*types.Log, 1),
 	}
 	err := des.ContractCall_initialize(ic)
 	assert.NoError(t, err)
@@ -73,11 +71,9 @@ func TestBlockAccount(t *testing.T) {
 	assert.True(t, ok)
 	input := append(fn.ID, []byte{0}...)
 	_, err = p.Run(ic, input)
-	t.Log(err)
 	assert.NotNil(t, err)
 
 	input, err = p.Abi.Pack("blockAccount", common.Address{})
-	t.Log(hex.EncodeToString(input))
 	assert.NoError(t, err)
 	_, err = p.Run(ic, input)
 	assert.NoError(t, err)
@@ -87,13 +83,7 @@ func TestBlockAccount(t *testing.T) {
 }
 
 func TestEvent(t *testing.T) {
-	p := NewPolicy()
+	p := NewPolicy(nil)
 	e := p.Abi.Events["setFeePerByte"]
 	assert.Equal(t, hash.Keccak256([]byte("setFeePerByte(uint64)")), e.ID)
-}
-
-func TestJson(t *testing.T) {
-	p := NewPolicy()
-	b, _ := json.Marshal(p)
-	t.Log(string(b))
 }

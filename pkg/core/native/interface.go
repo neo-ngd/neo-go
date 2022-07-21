@@ -10,7 +10,6 @@ import (
 type InteropContext interface {
 	Log(*types.Log)
 	Sender() common.Address
-	Natives() *Contracts
 	Dao() *dao.Simple
 	PersistingBlock() *block.Block
 }

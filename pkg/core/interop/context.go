@@ -79,10 +79,6 @@ func (c Context) Sender() common.Address {
 	return c.caller
 }
 
-func (c Context) Natives() *native.Contracts {
-	return c.Chain.Contracts()
-}
-
 func (c Context) Dao() *dao.Simple {
 	return c.sdb.CurrentStore().Simple
 }

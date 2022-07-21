@@ -30,9 +30,10 @@ var (
 
 type Policy struct {
 	state.NativeContract
+	cs *Contracts
 }
 
-func NewPolicy() *Policy {
+func NewPolicy(cs *Contracts) *Policy {
 	p := &Policy{
 		NativeContract: state.NativeContract{
 			Name: nativenames.Policy,
@@ -42,6 +43,7 @@ func NewPolicy() *Policy {
 				Code:     PolicyAddress[:],
 			},
 		},
+		cs: cs,
 	}
 	policyAbi, contractCalls, err := constructAbi(p)
 	if err != nil {
@@ -74,7 +76,7 @@ func (p *Policy) ContractCall_initialize(ic InteropContext) error {
 }
 
 func (p *Policy) ContractCall_setFeePerByte(ic InteropContext, fee uint64) error {
-	err := ic.Natives().Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkCommittee(ic)
 	if err != nil {
 		return err
 	}
@@ -86,7 +88,7 @@ func (p *Policy) ContractCall_setFeePerByte(ic InteropContext, fee uint64) error
 }
 
 func (p *Policy) ContractCall_setGasPrice(ic InteropContext, gasPrice uint64) error {
-	err := ic.Natives().Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkCommittee(ic)
 	if err != nil {
 		return err
 	}
@@ -98,7 +100,7 @@ func (p *Policy) ContractCall_setGasPrice(ic InteropContext, gasPrice uint64) er
 }
 
 func (p *Policy) ContractCall_blockAccount(ic InteropContext, address common.Address) error {
-	err := ic.Natives().Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkCommittee(ic)
 	if err != nil {
 		return err
 	}
@@ -116,7 +118,7 @@ func (p *Policy) ContractCall_blockAccount(ic InteropContext, address common.Add
 }
 
 func (p *Policy) ContractCall_unblockAccount(ic InteropContext, address common.Address) error {
-	err := ic.Natives().Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkCommittee(ic)
 	if err != nil {
 		return err
 	}
@@ -153,7 +155,7 @@ func (p *Policy) checkSystem(ic InteropContext, address common.Address) error {
 	if ic.PersistingBlock() == nil {
 		return ErrNoBlock
 	}
-	addrs, err := ic.Natives().Designate.GetSysAddresses(ic.Dao(), ic.PersistingBlock().Index)
+	addrs, err := p.cs.Designate.GetSysAddresses(ic.Dao(), ic.PersistingBlock().Index)
 	if err != nil {
 		return err
 	}

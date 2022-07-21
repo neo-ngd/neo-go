@@ -13,7 +13,7 @@ import (
 func TestKey(t *testing.T) {
 	d := dao.NewSimple(storage.NewMemoryStore())
 	ledger := NewLedger()
-	management := NewManagement()
+	management := NewManagement(nil)
 	t.Logf("%s, %s\n", LedgerAddress, ManagementAddress)
 	ledger.SetNonce(d, common.Address{}, 1)
 	code := management.GetCode(d, common.Address{})
