@@ -32,7 +32,6 @@ type (
 	// allows to filter transactions by senders and signers.
 	TxFilter struct {
 		Sender *common.Address `json:"sender,omitempty"`
-		Signer *common.Address `json:"signer,omitempty"`
 	}
 
 	// NotificationFilter is a wrapper structure representing filter used for

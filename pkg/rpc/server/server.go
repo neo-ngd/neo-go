@@ -886,7 +886,7 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 	if err != nil {
 		return nil, response.NewInvalidParamsError(fmt.Sprintf("Could not unmarshal tx object: %s", err), err)
 	}
-	var tx * transaction.Transaction
+	var tx *transaction.Transaction
 	if txObj.Witness == nil {
 		inner := &types.LegacyTx{
 			Nonce:    s.chain.GetNonce(txObj.From) + 1,
@@ -900,13 +900,13 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 	} else {
 		inner := &transaction.NeoTx{
 			Nonce:    s.chain.GetNonce(txObj.From) + 1,
-			From: txObj.From,
+			From:     txObj.From,
 			GasPrice: s.chain.GetGasPrice(),
 			Gas:      txObj.Gas,
 			To:       txObj.To,
 			Value:    txObj.Value,
 			Data:     txObj.Data,
-			Witness: *txObj.Witness,
+			Witness:  *txObj.Witness,
 		}
 		tx = transaction.NewTx(inner)
 	}
@@ -1832,7 +1832,7 @@ func (s *Server) subscribe(reqParams request.Params, sub *subscriber) (interface
 			flt := new(request.BlockFilter)
 			err = jd.Decode(flt)
 			filter = *flt
-		case response.TransactionEventID, response.NotaryRequestEventID:
+		case response.TransactionEventID:
 			flt := new(request.TxFilter)
 			err = jd.Decode(flt)
 			filter = *flt
