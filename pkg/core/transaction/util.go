@@ -27,7 +27,7 @@ func RlpSize(v interface{}) int {
 func CalculateNetworkFee(tx *Transaction, feePerByte uint64) uint64 {
 	switch tx.Type {
 	case EthLegacyTxType:
-		t := tx.LegacyTx
+		t := tx.EthTx
 		size := EthLegacyBaseLength + len(t.Data)
 		return uint64(size) * feePerByte
 	case NeoTxType:
@@ -54,7 +54,7 @@ func CalculateNetworkFee(tx *Transaction, feePerByte uint64) uint64 {
 	}
 }
 
-type legacyTxJson struct {
+type ethTxJson struct {
 	Nonce    hexutil.Uint64  `json:"nonce"`
 	GasPrice hexutil.Big     `json:"gasPrice"`
 	Gas      hexutil.Uint64  `json:"gas"`
@@ -66,8 +66,8 @@ type legacyTxJson struct {
 	S        hexutil.Big     `json:"S"`
 }
 
-func marshlJSON(tx *types.LegacyTx) ([]byte, error) {
-	t := &legacyTxJson{
+func marshalEthTxJSON(tx *types.LegacyTx) ([]byte, error) {
+	t := &ethTxJson{
 		Nonce:    hexutil.Uint64(tx.Nonce),
 		GasPrice: hexutil.Big(*tx.GasPrice),
 		Gas:      hexutil.Uint64(tx.Gas),
@@ -81,8 +81,8 @@ func marshlJSON(tx *types.LegacyTx) ([]byte, error) {
 	return json.Marshal(t)
 }
 
-func unmarshalJSON(b []byte, tx *types.LegacyTx) error {
-	t := new(legacyTxJson)
+func unmarshalEthTxJSON(b []byte, tx *types.LegacyTx) error {
+	t := new(ethTxJson)
 	err := json.Unmarshal(b, t)
 	if err != nil {
 		return err

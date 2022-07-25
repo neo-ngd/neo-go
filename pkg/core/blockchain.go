@@ -732,6 +732,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 	var err error
 	var logIndex uint
 	var cumulativeGas uint64
+	bc.contracts.OnPersist(cache, block)
 	sdb := statedb.NewStateDB(cache, bc)
 	for i, tx := range block.Transactions {
 		bc.log.Debug("executing tx", zap.String("hash", tx.Hash().String()))
@@ -1459,11 +1460,6 @@ var (
 	ErrInvalidVerificationContract = errors.New("verification contract is missing `verify` method")
 )
 
-// InitVerificationContext initializes context for witness check.
-func (bc *Blockchain) InitVerificationContext(hash common.Address, witness *transaction.Witness) error {
-	return nil
-}
-
 // VerifyWitness checks that w is a correct witness for c signed by h. It returns
 // the amount of GAS consumed during verification and an error.
 func (bc *Blockchain) VerifyWitness(h common.Address, c hash.Hashable, w *transaction.Witness) error {
@@ -1471,17 +1467,6 @@ func (bc *Blockchain) VerifyWitness(h common.Address, c hash.Hashable, w *transa
 		return errors.New("public key is not from sender")
 	}
 	return w.VerifyHashable(bc.config.ChainID, c)
-}
-
-func (bc *Blockchain) VerifyWitnesses(h common.Address, c hash.Hashable, w *block.Witnesses) error {
-	if h != w.Address() {
-		return errors.New("public key is not from sender")
-	}
-	r := w.VerifyHashable(bc.config.ChainID, c)
-	if r {
-		return nil
-	}
-	return errors.New("invalid signature")
 }
 
 func (bc *Blockchain) verifyTxWitnesses(t *transaction.Transaction, block *block.Block) error {

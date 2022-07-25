@@ -28,9 +28,9 @@ var (
 )
 
 type Transaction struct {
-	Type     byte
-	LegacyTx *types.LegacyTx
-	NeoTx    *NeoTx
+	Type  byte
+	EthTx *types.LegacyTx
+	NeoTx *NeoTx
 
 	Trimmed bool
 	EthSize int
@@ -55,7 +55,7 @@ func NewTx(t interface{}) *Transaction {
 		tx.NeoTx = v
 	case *types.LegacyTx:
 		tx.Type = EthLegacyTxType
-		tx.LegacyTx = v
+		tx.EthTx = v
 	default:
 		panic("unsupport tx")
 	}
@@ -74,7 +74,7 @@ func NewTransactionFromBytes(b []byte) (*Transaction, error) {
 func (t *Transaction) Nonce() uint64 {
 	switch t.Type {
 	case EthLegacyTxType:
-		return t.LegacyTx.Nonce
+		return t.EthTx.Nonce
 	case NeoTxType:
 		return t.NeoTx.Nonce
 	default:
@@ -85,7 +85,7 @@ func (t *Transaction) Nonce() uint64 {
 func (t *Transaction) To() *common.Address {
 	switch t.Type {
 	case EthLegacyTxType:
-		return t.LegacyTx.To
+		return t.EthTx.To
 	case NeoTxType:
 		return t.NeoTx.To
 	default:
@@ -96,7 +96,7 @@ func (t *Transaction) To() *common.Address {
 func (t *Transaction) Gas() uint64 {
 	switch t.Type {
 	case EthLegacyTxType:
-		return t.LegacyTx.Gas
+		return t.EthTx.Gas
 	case NeoTxType:
 		return t.NeoTx.Gas
 	default:
@@ -107,7 +107,7 @@ func (t *Transaction) Gas() uint64 {
 func (t *Transaction) GasPrice() *big.Int {
 	switch t.Type {
 	case EthLegacyTxType:
-		return t.LegacyTx.GasPrice
+		return t.EthTx.GasPrice
 	case NeoTxType:
 		return t.NeoTx.GasPrice
 	default:
@@ -123,7 +123,7 @@ func (t Transaction) Cost() *big.Int {
 func (t *Transaction) Value() *big.Int {
 	switch t.Type {
 	case EthLegacyTxType:
-		return t.LegacyTx.Value
+		return t.EthTx.Value
 	case NeoTxType:
 		return t.NeoTx.Value
 	default:
@@ -134,7 +134,7 @@ func (t *Transaction) Value() *big.Int {
 func (t *Transaction) Data() []byte {
 	switch t.Type {
 	case EthLegacyTxType:
-		return t.LegacyTx.Data
+		return t.EthTx.Data
 	case NeoTxType:
 		return t.NeoTx.Data
 	default:
@@ -149,7 +149,7 @@ func (t *Transaction) Size() int {
 	var size int
 	switch t.Type {
 	case EthLegacyTxType:
-		size = RlpSize(t.LegacyTx)
+		size = RlpSize(t.EthTx)
 	case NeoTxType:
 		size = t.NeoTx.Size()
 	default:
@@ -176,7 +176,7 @@ func (t *Transaction) Hash() common.Hash {
 	}
 	var h common.Hash
 	if t.Type == EthLegacyTxType {
-		h = hash.RlpHash(t.LegacyTx)
+		h = hash.RlpHash(t.EthTx)
 	} else {
 		h = t.NeoTx.Hash()
 	}
@@ -187,7 +187,7 @@ func (t *Transaction) Hash() common.Hash {
 func (t Transaction) SignHash(chainId uint64) common.Hash {
 	if t.Type == EthLegacyTxType {
 		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-		return signer.Hash(types.NewTx(t.LegacyTx))
+		return signer.Hash(types.NewTx(t.EthTx))
 	} else {
 		return t.Hash()
 	}
@@ -205,7 +205,7 @@ func (t *Transaction) EncodeBinary(w *io.BinWriter) {
 	w.WriteB(t.Type)
 	switch t.Type {
 	case EthLegacyTxType:
-		b, err := rlp.EncodeToBytes(t.LegacyTx)
+		b, err := rlp.EncodeToBytes(t.EthTx)
 		if err != nil {
 			w.Err = err
 			return
@@ -226,7 +226,7 @@ func (t *Transaction) DecodeBinary(r *io.BinReader) {
 		b := r.ReadVarBytes()
 		err := rlp.DecodeBytes(b, inner)
 		r.Err = err
-		t.LegacyTx = inner
+		t.EthTx = inner
 	case NeoTxType:
 		inner := new(NeoTx)
 		inner.DecodeBinary(r)
@@ -240,7 +240,7 @@ func (t *Transaction) Verify(chainId uint64) error {
 	switch t.Type {
 	case EthLegacyTxType:
 		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-		from, err := signer.Sender(types.NewTx(t.LegacyTx))
+		from, err := signer.Sender(types.NewTx(t.EthTx))
 		if err != nil {
 			return err
 		}
@@ -257,11 +257,11 @@ func (t *Transaction) WithSignature(chainId uint64, sig []byte) error {
 	switch t.Type {
 	case EthLegacyTxType:
 		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-		r, s, v, err := signer.SignatureValues(types.NewTx(t.LegacyTx), sig)
+		r, s, v, err := signer.SignatureValues(types.NewTx(t.EthTx), sig)
 		if err != nil {
 			return err
 		}
-		t.LegacyTx.V, t.LegacyTx.R, t.LegacyTx.S = v, r, s
+		t.EthTx.V, t.EthTx.R, t.EthTx.S = v, r, s
 		return nil
 	default:
 		return ErrUnsupportType
@@ -279,11 +279,11 @@ func (t *Transaction) WithWitness(witness Witness) error {
 func (t *Transaction) UnmarshalJSON(b []byte) error {
 	if t.Type == EthLegacyTxType {
 		tx := new(types.LegacyTx)
-		err := unmarshalJSON(b, tx)
+		err := unmarshalEthTxJSON(b, tx)
 		if err != nil {
 			return err
 		}
-		t.LegacyTx = tx
+		t.EthTx = tx
 		return nil
 	} else if t.Type == NeoTxType {
 		tx := new(NeoTx)
@@ -304,7 +304,7 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 	}
 	switch t.Type {
 	case EthLegacyTxType:
-		return marshlJSON(t.LegacyTx)
+		return marshalEthTxJSON(t.EthTx)
 	case NeoTxType:
 		return json.Marshal(t.NeoTx)
 	default:
@@ -319,7 +319,7 @@ var (
 func (t Transaction) IsValid() error {
 	switch t.Type {
 	case EthLegacyTxType:
-		if t.LegacyTx.Value.Sign() < 0 {
+		if t.EthTx.Value.Sign() < 0 {
 			return ErrNegativeValue
 		}
 		return nil
