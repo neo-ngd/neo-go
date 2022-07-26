@@ -259,7 +259,6 @@ func (t *NeoTx) UnmarshalJSON(data []byte) error {
 
 // Various errors for transaction validation.
 var (
-	ErrInvalidVersion = errors.New("only version 0 is supported")
 	ErrNegativeValue  = errors.New("negative value")
 	ErrWitnessUnmatch = errors.New("witness not match from")
 )

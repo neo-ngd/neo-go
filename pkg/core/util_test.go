@@ -16,4 +16,5 @@ func TestGenesisBlock(t *testing.T) {
 	bb := &block.Block{}
 	err = io.FromByteArray(bb, bs)
 	assert.NoError(t, err)
+	assert.Equal(t, 4, len(bb.Transactions))
 }

@@ -1252,7 +1252,7 @@ func (bc *Blockchain) verifyHeader(currHeader, prevHeader *block.Header) error {
 	if prevHeader.Timestamp >= currHeader.Timestamp {
 		return ErrHdrInvalidTimestamp
 	}
-	return bc.verifyHeaderWitnesses(currHeader, prevHeader)
+	return bc.verifyHeaderWitness(currHeader, prevHeader)
 }
 
 // Various errors that could be returned upon verification.
@@ -1304,7 +1304,7 @@ func (bc *Blockchain) verifyAndPoolTx(t *transaction.Transaction, pool *mempool.
 	}
 
 	// From need to recover from signature, so place this infront of nonce and policy check
-	err = bc.verifyTxWitnesses(t, nil)
+	err = t.Verify(bc.config.ChainID)
 	if err != nil {
 		return err
 	}
@@ -1368,7 +1368,7 @@ func (bc *Blockchain) IsTxStillRelevant(t *transaction.Transaction, txpool *memp
 		return false
 	}
 	if recheckWitness {
-		return bc.verifyTxWitnesses(t, nil) == nil
+		return t.Verify(bc.config.ChainID) == nil
 	}
 	return true
 }
@@ -1450,31 +1450,24 @@ func (bc *Blockchain) GetTestVM(tx *transaction.Transaction, b *block.Block) (*i
 
 // Various witness verification errors.
 var (
-	ErrWitnessHashMismatch         = errors.New("witness hash mismatch")
-	ErrNativeContractWitness       = errors.New("native contract witness must have empty verification script")
-	ErrVerificationFailed          = errors.New("signature check failed")
-	ErrInvalidInvocation           = errors.New("invalid invocation script")
-	ErrInvalidSignature            = fmt.Errorf("%w: invalid signature", ErrVerificationFailed)
-	ErrInvalidVerification         = errors.New("invalid verification script")
-	ErrUnknownVerificationContract = errors.New("unknown verification contract")
-	ErrInvalidVerificationContract = errors.New("verification contract is missing `verify` method")
+	ErrWitnessHashMismatch = errors.New("witness address mismatch")
+	ErrVerificationFailed  = errors.New("signature check failed")
+	ErrInvalidInvocation   = errors.New("invalid invocation script")
+	ErrInvalidSignature    = fmt.Errorf("%w: invalid signature", ErrVerificationFailed)
+	ErrInvalidVerification = errors.New("invalid verification script")
 )
 
 // VerifyWitness checks that w is a correct witness for c signed by h. It returns
 // the amount of GAS consumed during verification and an error.
 func (bc *Blockchain) VerifyWitness(h common.Address, c hash.Hashable, w *transaction.Witness) error {
 	if h != (w.Address()) {
-		return errors.New("public key is not from sender")
+		return ErrWitnessHashMismatch
 	}
 	return w.VerifyHashable(bc.config.ChainID, c)
 }
 
-func (bc *Blockchain) verifyTxWitnesses(t *transaction.Transaction, block *block.Block) error {
-	return t.Verify(bc.config.ChainID)
-}
-
-// verifyHeaderWitnesses is a block-specific implementation of VerifyWitnesses logic.
-func (bc *Blockchain) verifyHeaderWitnesses(currHeader, prevHeader *block.Header) error {
+// verifyHeaderWitness is a block-specific implementation of VerifyWitnesses logic.
+func (bc *Blockchain) verifyHeaderWitness(currHeader, prevHeader *block.Header) error {
 	validators, err := bc.GetValidators(currHeader.Index)
 	if err != nil {
 		panic(err)
