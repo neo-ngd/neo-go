@@ -12,8 +12,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/statedb"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
-	"github.com/neo-ngd/neo-go/pkg/evm"
-	"github.com/neo-ngd/neo-go/pkg/evm/vm"
+	"github.com/neo-ngd/neo-go/pkg/vm"
 )
 
 type NativeContract interface {
@@ -32,7 +31,7 @@ type Context struct {
 	Chain  Chain
 	Block  *block.Block
 	Tx     *transaction.Transaction
-	VM     *vm.EVM
+	VM     *EVM
 	bctx   vm.BlockContext
 	sdb    *statedb.StateDB
 	caller common.Address
@@ -46,9 +45,12 @@ func NewContext(block *block.Block, tx *transaction.Transaction, sdb *statedb.St
 		sdb:    sdb,
 		caller: tx.From(),
 	}
-	ctx.bctx = NewEVMBlockContext(block, chain, chain.GetConfig())
-	txContext := NewEVMTxContext(tx.From(), big.NewInt(1))
-	ctx.VM = evm.NewEVM(ctx.bctx,
+	ctx.bctx = newEVMBlockContext(block, chain, chain.GetConfig())
+	txContext := vm.TxContext{
+		Origin:   tx.From(),
+		GasPrice: tx.GasPrice(),
+	}
+	ctx.VM = NewEVM(ctx.bctx,
 		txContext, sdb, chain.GetConfig(),
 		map[common.Address]vm.NativeContract{
 			native.DesignationAddress: nativeWrapper{
@@ -69,6 +71,41 @@ func NewContext(block *block.Block, tx *transaction.Transaction, sdb *statedb.St
 			},
 		})
 	return ctx, nil
+}
+
+func newEVMBlockContext(block *block.Block,
+	bc Chain,
+	protocolSettings config.ProtocolConfiguration) (bctx vm.BlockContext) {
+	var coinbase common.Address
+	if block.Index > 0 {
+		validators, err := bc.GetCurrentValidators()
+		if err != nil {
+			panic(err)
+		}
+		if len(validators) == 0 {
+			panic("no validators")
+		}
+		coinbase = validators[block.PrimaryIndex].Address()
+	}
+	random := common.BigToHash(big.NewInt(int64(block.Nonce)))
+	bctx = vm.BlockContext{
+		CanTransfer: func(sdb vm.StateDB, from common.Address, amount *big.Int) bool {
+			return sdb.GetBalance(from).Cmp(amount) > 0
+		},
+		Transfer: func(sdb vm.StateDB, from common.Address, to common.Address, amount *big.Int) {
+			fromAmount := big.NewInt(0).Neg(amount)
+			sdb.AddBalance(from, fromAmount)
+			sdb.AddBalance(to, amount)
+		},
+		Coinbase:    coinbase,
+		GasLimit:    uint64(protocolSettings.MaxBlockGas),
+		BlockNumber: big.NewInt(int64(block.Index)),
+		Time:        big.NewInt(int64(block.Timestamp)),
+		Difficulty:  big.NewInt(0),
+		BaseFee:     big.NewInt(0),
+		Random:      &random,
+	}
+	return
 }
 
 func (c Context) Log(log *types.Log) {

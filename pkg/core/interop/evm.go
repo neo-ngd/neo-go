@@ -1,4 +1,4 @@
-package evm
+package interop
 
 import (
 	"math/big"
@@ -6,17 +6,22 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/neo-ngd/neo-go/pkg/config"
-	"github.com/neo-ngd/neo-go/pkg/evm/vm"
+	"github.com/neo-ngd/neo-go/pkg/vm"
 )
 
-const TestGas uint64 = 2000000000
+
+
+type EVM struct {
+	*vm.EVM
+	ChainConfig *params.ChainConfig
+}
 
 func NewEVM(bctx vm.BlockContext,
 	tctx vm.TxContext,
 	sdb vm.StateDB,
 	protocolSettings config.ProtocolConfiguration,
-	nativeContracts map[common.Address]vm.NativeContract) *vm.EVM {
-	evm := vm.NewEVM(bctx, tctx, sdb, &params.ChainConfig{
+	nativeContracts map[common.Address]vm.NativeContract) *EVM {
+	chainConfig := &params.ChainConfig{
 		ChainID:             big.NewInt(int64(protocolSettings.ChainID)),
 		HomesteadBlock:      big.NewInt(0),
 		DAOForkBlock:        nil,
@@ -32,6 +37,10 @@ func NewEVM(bctx vm.BlockContext,
 		BerlinBlock:         big.NewInt(0),
 		LondonBlock:         big.NewInt(0),
 		Ethash:              new(params.EthashConfig),
-	}, vm.Config{}, nativeContracts)
-	return evm
+	}
+	evm := vm.NewEVM(bctx, tctx, sdb, chainConfig, vm.Config{}, nativeContracts)
+	return &EVM{
+		EVM:         evm,
+		ChainConfig: chainConfig,
+	}
 }

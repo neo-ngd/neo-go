@@ -1,4 +1,4 @@
-package evm
+package interop
 
 import (
 	"math/big"
@@ -11,7 +11,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
 	"github.com/neo-ngd/neo-go/pkg/core/statedb"
 	"github.com/neo-ngd/neo-go/pkg/core/storage"
-	"github.com/neo-ngd/neo-go/pkg/evm/vm"
+	"github.com/neo-ngd/neo-go/pkg/vm"
 	"github.com/stretchr/testify/assert"
 )
 

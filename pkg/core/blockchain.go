@@ -32,7 +32,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
-	"github.com/neo-ngd/neo-go/pkg/evm"
+	evm "github.com/neo-ngd/neo-go/pkg/vm"
 	"go.uber.org/zap"
 )
 
@@ -729,6 +729,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		}
 		close(aerdone)
 	}()
+	
 	var err error
 	var logIndex uint
 	var cumulativeGas uint64
@@ -748,6 +749,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			left    uint64
 			address common.Address
 		)
+		sdb.PrepareAccessList(tx.From(), tx.To(), evm.PrecompiledAddressesBerlin, nil)
 		if tx.To() == nil {
 			_, address, left, err = vm.Create(ic, tx.Data(), gas, tx.Value())
 		} else {
@@ -755,7 +757,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		}
 		if err != nil {
 			bc.log.Debug("error when executing tx", zap.Uint32("block_index", block.Index),
-				zap.Int("tx_index", i),
+				zap.String("tx_hash", tx.Hash().String()),
 				zap.String("error", err.Error()))
 		}
 		gasUsed := tx.Gas() - left
@@ -1269,13 +1271,7 @@ var (
 // verifyAndPoolTx verifies whether a transaction is bonafide or not and tries
 // to add it to the mempool given.
 func (bc *Blockchain) verifyAndPoolTx(t *transaction.Transaction, pool *mempool.Pool, feer mempool.Feer, data ...interface{}) error {
-	// This code can technically be moved out of here, because it doesn't
-	// really require a chain lock.
-	err := evm.IsScriptCorrect(t.Data())
-	if err != nil {
-		return fmt.Errorf("%w: %v", ErrInvalidScript, err)
-	}
-	err = t.IsValid()
+	err := t.IsValid()
 	if err != nil {
 		return err
 	}

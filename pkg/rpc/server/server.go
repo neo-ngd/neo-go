@@ -31,7 +31,6 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/storage"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
-	"github.com/neo-ngd/neo-go/pkg/evm"
 	"github.com/neo-ngd/neo-go/pkg/io"
 	"github.com/neo-ngd/neo-go/pkg/network"
 	"github.com/neo-ngd/neo-go/pkg/rpc"
@@ -86,6 +85,8 @@ const (
 	// treated like subscriber, so technically it's a limit on websocket
 	// connections.
 	maxSubscribers = 64
+
+	TestGas uint64 = 2000000000
 )
 
 var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *response.Error){
@@ -742,14 +743,14 @@ func (s *Server) eth_signTransaction(params request.Params) (interface{}, *respo
 	}
 	var left uint64
 	if inner.To == nil {
-		_, _, left, err = ic.VM.Create(ic, inner.Data, evm.TestGas, inner.Value)
+		_, _, left, err = ic.VM.Create(ic, inner.Data, TestGas, inner.Value)
 	} else {
-		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), evm.TestGas, tx.Value())
+		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
 	}
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not executing data: %s", err), err)
 	}
-	inner.Gas = evm.TestGas - left
+	inner.Gas = TestGas - left
 	err = acc.SignTx(s.chainId, tx)
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not sign tx: %s", err), err)
@@ -797,14 +798,14 @@ func (s *Server) eth_sendTransaction(params request.Params) (interface{}, *respo
 	}
 	var left uint64
 	if inner.To == nil {
-		_, _, left, err = ic.VM.Create(ic, tx.Data(), evm.TestGas, tx.Value())
+		_, _, left, err = ic.VM.Create(ic, tx.Data(), TestGas, tx.Value())
 	} else {
-		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), evm.TestGas, tx.Value())
+		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
 	}
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not executing data: %s", err), err)
 	}
-	inner.Gas = evm.TestGas - left
+	inner.Gas = TestGas - left
 	netfee := transaction.CalculateNetworkFee(tx, s.chain.FeePerByte())
 	inner.Gas += netfee
 	if err != nil {
@@ -868,9 +869,9 @@ func (s *Server) eth_call(params request.Params) (interface{}, *response.Error) 
 	}
 	var ret []byte
 	if inner.To == nil {
-		ret, _, _, err = ic.VM.Create(ic, tx.Data(), evm.TestGas, tx.Value())
+		ret, _, _, err = ic.VM.Create(ic, tx.Data(), TestGas, tx.Value())
 	} else {
-		ret, _, err = ic.VM.Call(ic, *tx.To(), tx.Data(), evm.TestGas, tx.Value())
+		ret, _, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
 	}
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not executing data: %s", err), err)
@@ -924,14 +925,14 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 	}
 	var left uint64
 	if tx.To() == nil {
-		_, _, left, err = ic.VM.Create(ic, tx.Data(), evm.TestGas, tx.Value())
+		_, _, left, err = ic.VM.Create(ic, tx.Data(), TestGas, tx.Value())
 	} else {
-		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), evm.TestGas, tx.Value())
+		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
 	}
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not executing data: %s", err), err)
 	}
-	gas := evm.TestGas - left
+	gas := TestGas - left
 	feePerByte := s.chain.GetFeePerByte()
 	netfee := transaction.CalculateNetworkFee(tx, feePerByte)
 	if err != nil {
@@ -1322,14 +1323,14 @@ func (s *Server) calculateGas(reqParams request.Params) (interface{}, *response.
 	}
 	var left uint64
 	if neoTx.To == nil {
-		_, _, left, err = ic.VM.Create(ic, tx.Data(), evm.TestGas, tx.Value())
+		_, _, left, err = ic.VM.Create(ic, tx.Data(), TestGas, tx.Value())
 	} else {
-		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), evm.TestGas, tx.Value())
+		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
 	}
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not executing data: %s", err), err)
 	}
-	neoTx.Gas = evm.TestGas - left
+	neoTx.Gas = TestGas - left
 	neoTx.Gas += netfee + params.SstoreSentryGasEIP2200
 	if err != nil {
 		return 0, response.WrapErrorWithData(response.ErrInvalidParams, fmt.Errorf("failed to compute tx size: %w", err))
