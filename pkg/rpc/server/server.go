@@ -828,7 +828,7 @@ func (s *Server) eth_sendRawTransaction(params request.Params) (interface{}, *re
 	}
 	bw := io.NewBufBinWriter()
 	bw.WriteB(transaction.EthLegacyTxType)
-	bw.WriteVarBytes(rawTx)
+	bw.Write(rawTx)
 	tx, err := transaction.NewTransactionFromBytes(bw.Bytes())
 	if err != nil {
 		return nil, response.NewInvalidParamsError(fmt.Sprintf("can't decode transaction: %s", err), err)
@@ -908,6 +908,9 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 			Value:    txObj.Value,
 			Data:     txObj.Data,
 			Witness:  *txObj.Witness,
+		}
+		if len(inner.Witness.VerificationScript) == 0 {
+			return nil, response.NewInvalidParamsError("missing verification script", nil)
 		}
 		tx = transaction.NewTx(inner)
 	}
@@ -1301,7 +1304,7 @@ func (s *Server) calculateGas(reqParams request.Params) (interface{}, *response.
 	if err != nil {
 		return 0, response.WrapErrorWithData(response.ErrInvalidParams, err)
 	}
-	if len(neoTx.Witness.VerificationScript) < 1 {
+	if len(neoTx.Witness.VerificationScript) == 0 {
 		return nil, response.NewInvalidParamsError("missing verification script", nil)
 	}
 	tx := transaction.NewTx(neoTx)
