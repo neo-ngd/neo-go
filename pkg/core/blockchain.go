@@ -166,13 +166,6 @@ type bcEvent struct {
 	appExecResults []*types.Receipt
 }
 
-// transferData is used for transfer caching during storeBlock.
-type transferData struct {
-	Info  state.TokenTransferInfo
-	Log11 state.TokenTransferLog
-	Log17 state.TokenTransferLog
-}
-
 // NewBlockchain returns a new blockchain object the will use the
 // given Store as its underlying storage. For it to work correctly you need
 // to spawn a goroutine for its Run method after this initialization.
@@ -729,7 +722,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		}
 		close(aerdone)
 	}()
-	
+
 	var err error
 	var logIndex uint
 	var cumulativeGas uint64

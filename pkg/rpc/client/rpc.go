@@ -12,7 +12,6 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/state"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
-	"github.com/neo-ngd/neo-go/pkg/encoding/fixedn"
 	"github.com/neo-ngd/neo-go/pkg/io"
 	"github.com/neo-ngd/neo-go/pkg/rpc/request"
 	"github.com/neo-ngd/neo-go/pkg/rpc/response/result"
@@ -172,10 +171,10 @@ func (c *Client) GetBlockHeaderVerbose(hash common.Hash) (*result.Header, error)
 }
 
 // GetBlockSysFee returns the system fees of the block, based on the specified index.
-func (c *Client) GetBlockGas(index uint32) (fixedn.Fixed8, error) {
+func (c *Client) GetBlockGas(index uint32) (uint64, error) {
 	var (
 		params = request.NewRawParams(index)
-		resp   fixedn.Fixed8
+		resp   uint64
 	)
 	if err := c.performRequest("getblockgas", params, &resp); err != nil {
 		return resp, err

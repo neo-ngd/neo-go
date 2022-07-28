@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"github.com/neo-ngd/neo-go/pkg/encoding/fixedn"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
 )
 
@@ -13,12 +12,12 @@ type (
 		EnableCORSWorkaround bool   `yaml:"EnableCORSWorkaround"`
 		// MaxGasInvoke is a maximum amount of gas which
 		// can be spent during RPC call.
-		MaxGasInvoke           fixedn.Fixed8 `yaml:"MaxGasInvoke"`
-		MaxIteratorResultItems int           `yaml:"MaxIteratorResultItems"`
-		MaxFindResultItems     int           `yaml:"MaxFindResultItems"`
-		MaxERC721Tokens        int           `yaml:"MaxERC721Tokens"`
-		Port                   uint16        `yaml:"Port"`
-		TLSConfig              TLSConfig     `yaml:"TLSConfig"`
+		MaxGasInvoke           uint64    `yaml:"MaxGasInvoke"`
+		MaxIteratorResultItems int       `yaml:"MaxIteratorResultItems"`
+		MaxFindResultItems     int       `yaml:"MaxFindResultItems"`
+		MaxERC721Tokens        int       `yaml:"MaxERC721Tokens"`
+		Port                   uint16    `yaml:"Port"`
+		TLSConfig              TLSConfig `yaml:"TLSConfig"`
 		Wallet                 wallet.Wallet
 	}
 

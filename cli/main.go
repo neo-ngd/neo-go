@@ -8,7 +8,6 @@ import (
 	"github.com/neo-ngd/neo-go/cli/query"
 	"github.com/neo-ngd/neo-go/cli/server"
 	"github.com/neo-ngd/neo-go/cli/utils"
-	"github.com/neo-ngd/neo-go/cli/vm"
 	"github.com/neo-ngd/neo-go/cli/wallet"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/urfave/cli"
@@ -31,7 +30,6 @@ func newApp() *cli.App {
 
 	ctl.Commands = append(ctl.Commands, server.NewCommands()...)
 	ctl.Commands = append(ctl.Commands, wallet.NewCommands()...)
-	ctl.Commands = append(ctl.Commands, vm.NewCommands()...)
 	ctl.Commands = append(ctl.Commands, query.NewCommands()...)
 	ctl.Commands = append(ctl.Commands, native.NewCommands()...)
 	ctl.Commands = append(ctl.Commands, contract.NewCommands()...)
