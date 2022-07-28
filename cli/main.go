@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/neo-ngd/neo-go/cli/contract"
 	"github.com/neo-ngd/neo-go/cli/native"
 	"github.com/neo-ngd/neo-go/cli/query"
 	"github.com/neo-ngd/neo-go/cli/server"
@@ -33,6 +34,7 @@ func newApp() *cli.App {
 	ctl.Commands = append(ctl.Commands, vm.NewCommands()...)
 	ctl.Commands = append(ctl.Commands, query.NewCommands()...)
 	ctl.Commands = append(ctl.Commands, native.NewCommands()...)
+	ctl.Commands = append(ctl.Commands, contract.NewCommands()...)
 	ctl.Commands = append(ctl.Commands, utils.NewCommands()...)
 	return ctl
 }

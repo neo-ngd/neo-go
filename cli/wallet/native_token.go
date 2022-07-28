@@ -138,5 +138,5 @@ func transferNativeToken(ctx *cli.Context) error {
 		}
 		from = facc.Address
 	}
-	return MakeTx(ctx, wall, from, to, amount, []byte{})
+	return MakeNeoTx(ctx, wall, from, to, amount, []byte{})
 }

@@ -898,6 +898,7 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 			Data:     txObj.Data,
 		}
 		tx = transaction.NewTx(inner)
+		tx.EthFrom = txObj.From
 	} else {
 		inner := &transaction.NeoTx{
 			Nonce:    s.chain.GetNonce(txObj.From) + 1,
@@ -914,7 +915,6 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 		}
 		tx = transaction.NewTx(inner)
 	}
-	tx.EthFrom = txObj.From
 	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)

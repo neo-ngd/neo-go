@@ -679,7 +679,7 @@ func sign(ctx *cli.Context) error {
 	return nil
 }
 
-func MakeTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to common.Address, value *big.Int, data []byte) error {
+func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to common.Address, value *big.Int, data []byte) error {
 	var err error
 	var pks *keys.PublicKeys
 	var script []byte

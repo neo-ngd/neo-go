@@ -70,5 +70,5 @@ func makeCommitteeTx(ctx *cli.Context, to common.Address, data []byte) error {
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed get committee address: %w", err), 1)
 	}
-	return wallet.MakeTx(ctx, wall, committeeAddr, to, big.NewInt(0), data)
+	return wallet.MakeNeoTx(ctx, wall, committeeAddr, to, big.NewInt(0), data)
 }
