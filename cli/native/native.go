@@ -47,6 +47,7 @@ func getNativeContract(ctx *cli.Context, name string) (*abi.ABI, error) {
 	for _, n := range natives {
 		if n.Name == name {
 			nabi = &n.Abi
+			break
 		}
 	}
 	if nabi == nil {

@@ -711,13 +711,25 @@ func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to co
 		if err != nil {
 			return cli.NewExitError(fmt.Errorf("failed get committee: %w", err), 1)
 		}
-		isMulti = true
-		pks = &committee
-		m = keys.GetMajorityHonestNodeCount(pks.Len())
-		script, err = committee.CreateMajorityMultiSigRedeemScript()
-		if err != nil {
-			return cli.NewExitError(fmt.Errorf("can't create committee multi-sig script: %w", err), 1)
+		if committee.Len() == 1 {
+			isMulti = false
+			for _, acc := range wall.Accounts {
+				if acc.Address == committeeAddr {
+					signers = append(signers, acc)
+					break
+				}
+			}
+
+		} else {
+			isMulti = true
+			pks = &committee
+			m = keys.GetMajorityHonestNodeCount(pks.Len())
+			script, err = committee.CreateMajorityMultiSigRedeemScript()
+			if err != nil {
+				return cli.NewExitError(fmt.Errorf("can't create committee multi-sig script: %w", err), 1)
+			}
 		}
+
 	}
 	if isMulti {
 		if pks == nil {
