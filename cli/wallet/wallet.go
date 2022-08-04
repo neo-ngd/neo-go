@@ -12,6 +12,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/neo-ngd/neo-go/cli/flags"
 	"github.com/neo-ngd/neo-go/cli/input"
 	"github.com/neo-ngd/neo-go/cli/options"
@@ -19,6 +21,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/crypto"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/neo-ngd/neo-go/pkg/rpc/response/result"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
 )
@@ -834,6 +837,60 @@ func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to co
 		return cli.NewExitError(fmt.Errorf("failed encode tx to bytes: %w", err), 1)
 	}
 	hash, err := c.SendRawTransaction(b)
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed relay tx: %w", err), 1)
+	}
+	fmt.Fprintf(ctx.App.Writer, "TxHash: %s\n", hash)
+	return nil
+}
+
+func MakeEthTx(ctx *cli.Context, facc *wallet.Account, to *common.Address, value *big.Int, data []byte) error {
+	var err error
+	gctx, cancel := options.GetTimeoutContext(ctx)
+	defer cancel()
+	c, err := options.GetRPCClient(gctx, ctx)
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	chainId, err := c.Eth_ChainId()
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed to get chainId: %w", err), 1)
+	}
+	gasPrice, err := c.Eth_GasPrice()
+	if err != nil {
+		return cli.NewExitError(err, 1)
+	}
+	nonce, err := c.Eth_GetTransactionCount(facc.Address)
+	if err != nil {
+		return err
+	}
+	tx := &types.LegacyTx{
+		Nonce:    nonce,
+		To:       to,
+		GasPrice: gasPrice,
+		Value:    value,
+		Data:     data,
+	}
+	gas, err := c.Eth_EstimateGas(&result.TransactionObject{
+		From:     facc.Address,
+		To:       tx.To,
+		GasPrice: tx.GasPrice,
+		Value:    tx.Value,
+		Data:     tx.Data,
+	})
+	if err != nil {
+		return err
+	}
+	tx.Gas = gas
+	err = facc.SignTx(chainId, transaction.NewTx(tx))
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("can't sign tx: %w", err), 1)
+	}
+	b, err := rlp.EncodeToBytes(tx)
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("failed encode tx to bytes: %w", err), 1)
+	}
+	hash, err := c.Eth_SendRawTransaction(b)
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed relay tx: %w", err), 1)
 	}

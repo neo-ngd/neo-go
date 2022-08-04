@@ -119,24 +119,30 @@ func transferNativeToken(ctx *cli.Context) error {
 	if !ok {
 		return cli.NewExitError(fmt.Errorf("could not parse amount: %s", samount), 1)
 	}
-	var from common.Address
+	var facc *wallet.Account
 	fromFlag := ctx.Generic("from").(*flags.Address)
 	if fromFlag.IsSet {
-		from = fromFlag.Address()
+		from := fromFlag.Address()
 		if from == (common.Address{}) {
 			return cli.NewExitError(fmt.Errorf("invalid from address"), 1)
+		}
+		for _, acc := range wall.Accounts {
+			if acc.Address == from {
+				facc = acc
+				break
+			}
 		}
 	} else {
 		if len(wall.Accounts) == 0 {
 			return cli.NewExitError(fmt.Errorf("could not find any account in wallet"), 1)
 		}
-		facc := wall.Accounts[0]
+		facc = wall.Accounts[0]
 		for _, acc := range wall.Accounts {
 			if acc.Default {
 				facc = acc
+				break
 			}
 		}
-		from = facc.Address
 	}
-	return MakeNeoTx(ctx, wall, from, to, amount, []byte{})
+	return MakeEthTx(ctx, facc, &to, amount, nil)
 }
