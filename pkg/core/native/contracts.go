@@ -75,8 +75,12 @@ func (cs *Contracts) OnPersist(d *dao.Simple, block *block.Block) error {
 	return cs.GAS.OnPersist(d, block)
 }
 
-func (cs *Contracts) PostPersist(d *dao.Simple, block *block.Block) {
-
+func (cs *Contracts) PostPersist(d *dao.Simple, block *block.Block) error {
+	err := cs.Designate.PostPersist(d, block)
+	if err != nil {
+		return err
+	}
+	return cs.Policy.PostPersist(d, block)
 }
 
 func convertType(in reflect.Type) (abi.Type, error) {

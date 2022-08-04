@@ -333,11 +333,11 @@ func (bc *Blockchain) init() error {
 }
 
 func (bc *Blockchain) initializeNativeCache(blockHeight uint32, d *dao.Simple) error {
-	err := bc.contracts.Designate.InitializeCache(d)
+	err := bc.contracts.Designate.UpdateCache(d)
 	if err != nil {
 		return fmt.Errorf("can't init cache for Designation native contract: %w", err)
 	}
-	err = bc.contracts.Policy.InitializeCache(d)
+	err = bc.contracts.Policy.UpdateCache(d)
 	if err != nil {
 		return fmt.Errorf("can't init cache for Policy native contract: %w", err)
 	}
@@ -892,6 +892,10 @@ func (bc *Blockchain) onPersist(d *dao.Simple, b *block.Block) error {
 }
 
 func (bc *Blockchain) postPersist(d *dao.Simple, b *block.Block) error {
+	err := bc.contracts.PostPersist(d, b)
+	if err != nil {
+		return err
+	}
 	nodes, index, err := bc.contracts.Designate.GetDesignatedByRole(d, noderoles.StateValidator, b.Index)
 	if err != nil {
 		return err
@@ -1218,7 +1222,7 @@ func (bc *Blockchain) UnsubscribeFromExecutions(ch chan<- *types.Receipt) {
 
 // FeePerByte returns transaction network fee per byte.
 func (bc *Blockchain) FeePerByte() uint64 {
-	return bc.contracts.Policy.GetFeePerByteInternal(bc.dao)
+	return bc.contracts.Policy.GetFeePerByte(bc.dao)
 }
 
 // GetMemPool returns the memory pool of the blockchain.
@@ -1529,14 +1533,14 @@ func (bc *Blockchain) GetFeePerByte() uint64 {
 	if bc.BlockHeight() == 0 {
 		return native.DefaultFeePerByte
 	}
-	return bc.contracts.Policy.GetFeePerByteInternal(bc.dao)
+	return bc.contracts.Policy.GetFeePerByte(bc.dao)
 }
 
 func (bc *Blockchain) GetGasPrice() *big.Int {
 	if bc.BlockHeight() == 0 {
 		return big.NewInt(int64(native.DefaultGasPrice))
 	}
-	return bc.contracts.Policy.GetGasPriceInternal(bc.dao)
+	return bc.contracts.Policy.GetGasPrice(bc.dao)
 }
 
 func (bc *Blockchain) Contracts() *native.Contracts {

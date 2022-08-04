@@ -4,8 +4,10 @@ import (
 	"encoding/binary"
 	"errors"
 	"math/big"
+	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativeids"
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
@@ -30,7 +32,13 @@ var (
 
 type Policy struct {
 	state.NativeContract
-	cs *Contracts
+	cs    *Contracts
+	cache *policyCache
+}
+
+type policyCache struct {
+	feePerByte atomic.Value
+	gasPrice   atomic.Value
 }
 
 func NewPolicy(cs *Contracts) *Policy {
@@ -43,7 +51,8 @@ func NewPolicy(cs *Contracts) *Policy {
 				Code:     PolicyAddress[:],
 			},
 		},
-		cs: cs,
+		cs:    cs,
+		cache: &policyCache{},
 	}
 	policyAbi, contractCalls, err := constructAbi(p)
 	if err != nil {
@@ -58,7 +67,14 @@ func createBlockKey(address common.Address) []byte {
 	return makeAddressKey(PrefixBlockedAcount, address)
 }
 
-func (p *Policy) InitializeCache(d *dao.Simple) error {
+func (p *Policy) UpdateCache(d *dao.Simple) error {
+	p.cache.feePerByte.Store(p.GetFeePerByteFromStorage(d))
+	p.cache.gasPrice.Store(p.GetGasPriceFromStorage(d))
+	return nil
+}
+
+func (p *Policy) PostPersist(d *dao.Simple, _ *block.Block) error {
+	p.UpdateCache(d)
 	return nil
 }
 
@@ -139,7 +155,15 @@ func (p *Policy) ContractCall_unblockAccount(ic InteropContext, address common.A
 	return nil
 }
 
-func (p *Policy) GetFeePerByteInternal(s *dao.Simple) uint64 {
+func (p *Policy) GetFeePerByte(s *dao.Simple) uint64 {
+	val := p.cache.feePerByte.Load()
+	if val != nil {
+		return val.(uint64)
+	}
+	return p.GetFeePerByteFromStorage(s)
+}
+
+func (p *Policy) GetFeePerByteFromStorage(s *dao.Simple) uint64 {
 	item := s.GetStorageItem(p.Address, []byte{PrefixFeePerByte})
 	if item == nil {
 		return DefaultFeePerByte
@@ -147,12 +171,20 @@ func (p *Policy) GetFeePerByteInternal(s *dao.Simple) uint64 {
 	return binary.BigEndian.Uint64(item)
 }
 
-func (p *Policy) GetGasPriceInternal(s *dao.Simple) *big.Int {
+func (p *Policy) GetGasPrice(s *dao.Simple) *big.Int {
+	val := p.cache.gasPrice.Load()
+	if val != nil {
+		return val.(*big.Int)
+	}
+	return p.GetGasPriceFromStorage(s)
+}
+
+func (p *Policy) GetGasPriceFromStorage(s *dao.Simple) *big.Int {
 	item := s.GetStorageItem(p.Address, []byte{PrefixGasPrice})
 	if item == nil {
 		return big.NewInt(int64(DefaultGasPrice))
 	}
-	return big.NewInt(0).SetBytes(item)
+	return big.NewInt(int64(binary.BigEndian.Uint64(item)))
 }
 
 func (p *Policy) checkSystem(ic InteropContext, address common.Address) error {

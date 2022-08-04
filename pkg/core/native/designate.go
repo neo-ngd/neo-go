@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/neo-ngd/neo-go/pkg/config"
+	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativeids"
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
@@ -76,10 +77,16 @@ func NewDesignate(cfg config.ProtocolConfiguration) *Designate {
 	return d
 }
 
-func (d *Designate) InitializeCache(s *dao.Simple) error {
-	d.updateCachedRoleData(d.cache, s, noderoles.Committee)
-	d.updateCachedRoleData(d.cache, s, noderoles.StateValidator)
-	return nil
+func (d *Designate) UpdateCache(s *dao.Simple) error {
+	err := d.updateCachedRoleData(d.cache, s, noderoles.Committee)
+	if err != nil {
+		return err
+	}
+	return d.updateCachedRoleData(d.cache, s, noderoles.StateValidator)
+}
+
+func (d *Designate) PostPersist(s *dao.Simple, _ *block.Block) error {
+	return d.UpdateCache(s)
 }
 
 func (d *Designate) updateCachedRoleData(cache *DesignationCache, s *dao.Simple, r noderoles.Role) error {
@@ -112,6 +119,9 @@ func addressFromNodes(r noderoles.Role, nodes keys.PublicKeys) (common.Address, 
 	case noderoles.Committee:
 		return createCommitteeAddress(nodes)
 	case noderoles.StateValidator:
+		if nodes.Len() == 0 {
+			return common.Address{}, nil
+		}
 		script, err := nodes.CreateDefaultMultiSigRedeemScript()
 		if err != nil {
 			return common.Address{}, err
@@ -190,7 +200,6 @@ func (d *Designate) designateAsRole(ic InteropContext, r noderoles.Role, keys ke
 	}
 	sort.Sort(ks)
 	ic.Dao().PutStorageItem(d.Address, createRoleKey(r, index), ks.Bytes())
-	d.updateCachedRoleData(d.cache, ic.Dao(), r)
 	return nil
 }
 
