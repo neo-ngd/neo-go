@@ -2,7 +2,6 @@ package native
 
 import (
 	"fmt"
-	"math/big"
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -106,7 +105,7 @@ func setFeePerByte(ctx *cli.Context) error {
 }
 
 func setGasPrice(ctx *cli.Context) error {
-	value, err := parseBigInput(ctx)
+	value, err := parseUint64Input(ctx)
 	if err != nil {
 		return err
 	}
@@ -132,18 +131,6 @@ func parseUint64Input(ctx *cli.Context) (uint64, error) {
 		return 0, cli.NewExitError(fmt.Errorf("invalid number %s", num), 1)
 	}
 	return param, nil
-}
-
-func parseBigInput(ctx *cli.Context) ([]byte, error) {
-	if len(ctx.Args()) < 1 {
-		return nil, cli.NewExitError(fmt.Errorf("please input address"), 1)
-	}
-	num := ctx.Args().First()
-	param, ok := big.NewInt(0).SetString(num, 10)
-	if !ok {
-		return nil, cli.NewExitError(fmt.Errorf("invalid number %s", num), 1)
-	}
-	return param.Bytes(), nil
 }
 
 func callPolicy(ctx *cli.Context, method string, args ...interface{}) error {
