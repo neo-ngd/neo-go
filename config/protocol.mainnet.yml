@@ -39,6 +39,11 @@ ApplicationConfiguration:
   UnlockWallet:
     Path: ""
     Password: ""
+  StateRoot:
+    Enabled: false
+    UnlockWallet:
+      Path: ""
+      Password: ""
   RPC:
     Enabled: true
     MaxGasInvoke: 15

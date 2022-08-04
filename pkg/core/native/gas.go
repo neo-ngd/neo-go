@@ -89,8 +89,8 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	return err
 }
 
-func (g *GAS) OnPersist(d *dao.Simple, block *block.Block) {
-
+func (g *GAS) OnPersist(d *dao.Simple, block *block.Block) error {
+	return nil
 }
 
 func (g *GAS) increaseBalance(gs *GasState, amount *big.Int) error {

@@ -259,8 +259,9 @@ func (t *NeoTx) UnmarshalJSON(data []byte) error {
 
 // Various errors for transaction validation.
 var (
-	ErrNegativeValue  = errors.New("negative value")
-	ErrWitnessUnmatch = errors.New("witness not match from")
+	ErrNegativeValue   = errors.New("negative value")
+	ErrZeroFromAddress = errors.New("zero from address")
+	ErrWitnessUnmatch  = errors.New("witness not match from")
 )
 
 // isValid checks whether decoded/unmarshalled transaction has all fields valid.
@@ -268,8 +269,8 @@ func (t *NeoTx) isValid() error {
 	if t.Value.Sign() < 0 || t.GasPrice.Sign() < 0 {
 		return ErrNegativeValue
 	}
-	if t.From != t.Witness.Address() {
-		return ErrWitnessUnmatch
+	if t.From == (common.Address{}) {
+		return ErrZeroFromAddress
 	}
 	return nil
 }

@@ -58,6 +58,10 @@ func createBlockKey(address common.Address) []byte {
 	return makeAddressKey(PrefixBlockedAcount, address)
 }
 
+func (p *Policy) InitializeCache(d *dao.Simple) error {
+	return nil
+}
+
 func (p *Policy) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize

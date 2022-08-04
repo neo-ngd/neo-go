@@ -324,7 +324,24 @@ func (bc *Blockchain) init() error {
 		return fmt.Errorf("can't init MPT at height %d: %w", bHeight, err)
 	}
 
+	err = bc.initializeNativeCache(bc.blockHeight, bc.dao)
+	if err != nil {
+		return fmt.Errorf("can't init natives cache: %w", err)
+	}
+
 	return bc.updateExtensibleWhitelist(bHeight)
+}
+
+func (bc *Blockchain) initializeNativeCache(blockHeight uint32, d *dao.Simple) error {
+	err := bc.contracts.Designate.InitializeCache(d)
+	if err != nil {
+		return fmt.Errorf("can't init cache for Designation native contract: %w", err)
+	}
+	err = bc.contracts.Policy.InitializeCache(d)
+	if err != nil {
+		return fmt.Errorf("can't init cache for Policy native contract: %w", err)
+	}
+	return nil
 }
 
 // Run runs chain loop, it needs to be run as goroutine and executing it is
@@ -726,7 +743,10 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 	var err error
 	var logIndex uint
 	var cumulativeGas uint64
-	bc.contracts.OnPersist(cache, block)
+	err = bc.onPersist(cache, block)
+	if err != nil {
+		return fmt.Errorf("onPersist failed: %w", err)
+	}
 	sdb := statedb.NewStateDB(cache, bc)
 	for i, tx := range block.Transactions {
 		bc.log.Debug("executing tx", zap.String("hash", tx.Hash().String()))
@@ -797,6 +817,10 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		appExecResults = append(appExecResults, aer)
 		aerchan <- aer
 	}
+	err = bc.postPersist(cache, block)
+	if err != nil {
+		return fmt.Errorf("postPersist failed: %w", err)
+	}
 	close(aerchan)
 	b := mpt.MapToMPTBatch(cache.Store.GetStorageChanges())
 	mpt, sr, err := bc.stateRoot.AddMPTBatch(block.Index, b, cache.Store)
@@ -863,8 +887,21 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 	return nil
 }
 
+func (bc *Blockchain) onPersist(d *dao.Simple, b *block.Block) error {
+	return bc.contracts.OnPersist(d, b)
+}
+
+func (bc *Blockchain) postPersist(d *dao.Simple, b *block.Block) error {
+	nodes, index, err := bc.contracts.Designate.GetDesignatedByRole(d, noderoles.StateValidator, b.Index)
+	if err != nil {
+		return err
+	}
+	bc.stateRoot.UpdateStateValidators(index, nodes)
+	return nil
+}
+
 func (bc *Blockchain) updateExtensibleWhitelist(height uint32) error {
-	stateVals, err := bc.contracts.Designate.GetDesignatedByRole(bc.dao, noderoles.StateValidator, height+1)
+	stateVals, _, err := bc.contracts.Designate.GetDesignatedByRole(bc.dao, noderoles.StateValidator, height+1)
 	if err != nil {
 		return err
 	}
@@ -1449,7 +1486,7 @@ var (
 // VerifyWitness checks that w is a correct witness for c signed by h. It returns
 // the amount of GAS consumed during verification and an error.
 func (bc *Blockchain) VerifyWitness(h common.Address, c hash.Hashable, w *transaction.Witness) error {
-	if h != (w.Address()) {
+	if h != w.Address() {
 		return ErrWitnessHashMismatch
 	}
 	return w.VerifyHashable(bc.config.ChainID, c)

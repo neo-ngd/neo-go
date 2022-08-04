@@ -71,8 +71,12 @@ func (cs *Contracts) ByName(name string) *state.NativeContract {
 	return nil
 }
 
-func (cs *Contracts) OnPersist(d *dao.Simple, block *block.Block) {
-	cs.GAS.OnPersist(d, block)
+func (cs *Contracts) OnPersist(d *dao.Simple, block *block.Block) error {
+	return cs.GAS.OnPersist(d, block)
+}
+
+func (cs *Contracts) PostPersist(d *dao.Simple, block *block.Block) {
+
 }
 
 func convertType(in reflect.Type) (abi.Type, error) {

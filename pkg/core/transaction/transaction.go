@@ -242,6 +242,9 @@ func (t *Transaction) Verify(chainId uint64) error {
 		t.EthFrom = from
 		return nil
 	case NeoTxType:
+		if t.NeoTx.From != t.NeoTx.Witness.Address() {
+			return ErrWitnessUnmatch
+		}
 		return t.NeoTx.Witness.VerifyHashable(chainId, t.NeoTx)
 	default:
 		return ErrUnsupportType
