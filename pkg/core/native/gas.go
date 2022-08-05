@@ -66,10 +66,7 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
-	validators, err := g.cs.Designate.GetValidators(ic.Dao(), 0)
-	if err != nil {
-		return err
-	}
+	validators := g.cs.Designate.StandbyCommittee[:g.cs.Designate.ValidatorsCount]
 	var addr common.Address
 	if validators.Len() == 1 {
 		addr = validators[0].Address()
@@ -82,7 +79,7 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	}
 	wei := big.NewInt(1).Exp(big.NewInt(10), big.NewInt(GASDecimal), nil)
 	total := big.NewInt(1).Mul(big.NewInt(int64(g.initialSupply)), wei)
-	err = g.addTokens(ic.Dao(), addr, total)
+	err := g.addTokens(ic.Dao(), addr, total)
 	if err == nil {
 		log(ic, g.Address, total.Bytes(), g.Abi.Events["initialize"].ID)
 	}

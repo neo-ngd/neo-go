@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/neo-ngd/neo-go/cli/options"
 	"github.com/neo-ngd/neo-go/cli/wallet"
-	"github.com/neo-ngd/neo-go/pkg/core/native"
 	"github.com/neo-ngd/neo-go/pkg/core/native/nativenames"
 	"github.com/urfave/cli"
 )
@@ -42,14 +41,14 @@ func newPolicyCommands() []cli.Command {
 			ArgsUsage: "<address>",
 			Subcommands: []cli.Command{
 				{
-					Name:      "feePerByte",
+					Name:      "feeperbyte",
 					Usage:     "set FeePerByte of tx",
 					ArgsUsage: "<number>",
 					Action:    setFeePerByte,
 					Flags:     flags,
 				},
 				{
-					Name:      "gasPrice",
+					Name:      "gasprice",
 					Usage:     "set GasPrice of tx",
 					ArgsUsage: "<number>",
 					Action:    setGasPrice,
@@ -85,7 +84,7 @@ func blockAccount(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return callPolicy(ctx, "blockAccount", address)
+	return callNative(ctx, nativenames.Policy, "blockAccount", address)
 }
 
 func unblockAccount(ctx *cli.Context) error {
@@ -93,7 +92,7 @@ func unblockAccount(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return callPolicy(ctx, "unblockAccount", address)
+	return callNative(ctx, nativenames.Policy, "unblockAccount", address)
 }
 
 func setFeePerByte(ctx *cli.Context) error {
@@ -101,7 +100,7 @@ func setFeePerByte(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return callPolicy(ctx, "setFeePerByte", value)
+	return callNative(ctx, nativenames.Policy, "setFeePerByte", value)
 }
 
 func setGasPrice(ctx *cli.Context) error {
@@ -109,7 +108,7 @@ func setGasPrice(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	return callPolicy(ctx, "setGasPrice", value)
+	return callNative(ctx, nativenames.Policy, "setGasPrice", value)
 }
 
 func parseAddressInput(ctx *cli.Context) (common.Address, error) {
@@ -131,16 +130,4 @@ func parseUint64Input(ctx *cli.Context) (uint64, error) {
 		return 0, cli.NewExitError(fmt.Errorf("invalid number %s", num), 1)
 	}
 	return param, nil
-}
-
-func callPolicy(ctx *cli.Context, method string, args ...interface{}) error {
-	pabi, err := getNativeContract(ctx, nativenames.Policy)
-	if err != nil {
-		return err
-	}
-	data, err := pabi.Pack(method, args...)
-	if err != nil {
-		return cli.NewExitError(fmt.Errorf("can't pack inputs for %s: %w", method, err), 1)
-	}
-	return makeCommitteeTx(ctx, native.PolicyAddress, data)
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/neo-ngd/neo-go/cli/flags"
+	"github.com/neo-ngd/neo-go/cli/input"
 	"github.com/neo-ngd/neo-go/cli/options"
 	"github.com/neo-ngd/neo-go/pkg/wallet"
 	"github.com/urfave/cli"
@@ -143,6 +144,17 @@ func transferNativeToken(ctx *cli.Context) error {
 				break
 			}
 		}
+	}
+	if facc == nil {
+		return cli.NewExitError(fmt.Errorf("could not find any account in wallet"), 1)
+	}
+	pass, err := input.ReadPassword(fmt.Sprintf("Enter %s password > ", facc.Address))
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("error reading password: %w", err), 1)
+	}
+	err = facc.Decrypt(pass, wall.Scrypt)
+	if err != nil {
+		return cli.NewExitError(fmt.Errorf("unable to decrypt account: %s", facc.Address), 1)
 	}
 	return MakeEthTx(ctx, facc, &to, amount, nil)
 }

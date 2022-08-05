@@ -734,6 +734,9 @@ func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to co
 		}
 
 	}
+	if len(signers) == 0 {
+		return cli.NewExitError("can't find account to sign", 1)
+	}
 	if isMulti {
 		if pks == nil {
 			script = signers[0].Script
@@ -761,7 +764,9 @@ func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to co
 	} else {
 		script = signers[0].Script
 	}
-
+	if len(signers) == 0 {
+		return cli.NewExitError("can't find account to sign", 1)
+	}
 	for _, acc := range signers {
 		pass, err := input.ReadPassword(fmt.Sprintf("Enter %s password > ", acc.Address))
 		if err != nil {
