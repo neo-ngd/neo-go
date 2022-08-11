@@ -754,6 +754,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			CumulativeGasUsed: cumulativeGas,
 			Logs:              logs,
 		}
+		aer.Bloom = types.BytesToBloom(types.LogsBloom(aer.Logs))
 		if err == nil {
 			aer.Status = 1
 		}
