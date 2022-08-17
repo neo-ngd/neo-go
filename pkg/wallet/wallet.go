@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
+	"github.com/urfave/cli"
 )
 
 const (
@@ -41,6 +42,10 @@ type Extra struct {
 }
 
 func NewWallet(location string) (*Wallet, error) {
+	info, err := os.Stat(location)
+	if err == nil && !info.IsDir() {
+		return nil, cli.NewExitError("file already exists", 1)
+	}
 	file, err := os.Create(location)
 	if err != nil {
 		return nil, err
