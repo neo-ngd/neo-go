@@ -114,15 +114,6 @@ func NewCommands() []cli.Command {
 				},
 			},
 			{
-				Name:   "dump",
-				Usage:  "check and dump an existing neo-go-evm wallet",
-				Action: dumpWallet,
-				Flags: []cli.Flag{
-					WalletPathFlag,
-					decryptFlag,
-				},
-			},
-			{
 				Name:   "dump-keys",
 				Usage:  "dump public keys for account",
 				Action: dumpKeys,
@@ -470,30 +461,6 @@ func askForConsent(w io.Writer) bool {
 	}
 	fmt.Fprintln(w, "Cancelled.")
 	return false
-}
-
-func dumpWallet(ctx *cli.Context) error {
-	wall, err := ReadWallet(ctx.String("wallet"))
-	if err != nil {
-		return cli.NewExitError(err, 1)
-	}
-	if ctx.Bool("decrypt") {
-		pass, err := input.ReadPassword("Enter wallet password > ")
-		if err != nil {
-			return cli.NewExitError(fmt.Errorf("error reading password: %w", err), 1)
-		}
-		for i := range wall.Accounts {
-			// Just testing the decryption here.
-			if !wall.Accounts[i].IsMultiSig() {
-				err := wall.Accounts[i].Decrypt(pass, wall.Scrypt)
-				if err != nil {
-					return cli.NewExitError(err, 1)
-				}
-			}
-		}
-	}
-	fmtPrintWallet(ctx.App.Writer, wall)
-	return nil
 }
 
 func dumpKeys(ctx *cli.Context) error {
