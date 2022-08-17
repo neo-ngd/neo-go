@@ -507,7 +507,7 @@ func dumpKeys(ctx *cli.Context) error {
 	if addrFlag.IsSet {
 		acc := wall.GetAccount(addrFlag.Address())
 		if acc == nil {
-			return cli.NewExitError("account is missing", 1)
+			return cli.NewExitError("can't find address", 1)
 		}
 		accounts = []*wallet.Account{acc}
 	}
@@ -527,9 +527,6 @@ func dumpKeys(ctx *cli.Context) error {
 			fmt.Fprintf(ctx.App.Writer, "public key: %s \n", hex.EncodeToString((acc.Script)[1:]))
 		}
 		hasPrinted = true
-		if addrFlag.IsSet {
-			return cli.NewExitError(fmt.Errorf("unknown script type for address %s", addrFlag.Address()), 1)
-		}
 	}
 	return nil
 }
