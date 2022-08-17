@@ -717,7 +717,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		if execErr != nil {
 			bc.log.Debug("error when executing tx", zap.Uint32("block_index", block.Index),
 				zap.String("tx_hash", tx.Hash().String()),
-				zap.String("error", err.Error()))
+				zap.String("error", execErr.Error()))
 		}
 		gasUsed := tx.Gas() - left
 		logs := sdb.GetLogs()
