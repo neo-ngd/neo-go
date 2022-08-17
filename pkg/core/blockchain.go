@@ -683,9 +683,12 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		close(aerdone)
 	}()
 
-	var err error
-	var logIndex uint
-	var cumulativeGas uint64
+	var (
+		err           error
+		execErr       error
+		logIndex      uint
+		cumulativeGas uint64
+	)
 	err = bc.onPersist(cache, block)
 	if err != nil {
 		return fmt.Errorf("onPersist failed: %w", err)
@@ -707,11 +710,11 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		)
 		sdb.PrepareAccessList(tx.From(), tx.To(), evm.PrecompiledAddressesBerlin, nil)
 		if tx.To() == nil {
-			_, address, left, err = vm.Create(ic, tx.Data(), gas, tx.Value())
+			_, address, left, execErr = vm.Create(ic, tx.Data(), gas, tx.Value())
 		} else {
-			_, left, err = vm.Call(ic, *tx.To(), tx.Data(), gas, tx.Value())
+			_, left, execErr = vm.Call(ic, *tx.To(), tx.Data(), gas, tx.Value())
 		}
-		if err != nil {
+		if execErr != nil {
 			bc.log.Debug("error when executing tx", zap.Uint32("block_index", block.Index),
 				zap.String("tx_hash", tx.Hash().String()),
 				zap.String("error", err.Error()))
@@ -755,7 +758,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			Logs:              logs,
 		}
 		aer.Bloom = types.BytesToBloom(types.LogsBloom(aer.Logs))
-		if err == nil {
+		if execErr == nil {
 			aer.Status = 1
 		}
 		appExecResults = append(appExecResults, aer)
