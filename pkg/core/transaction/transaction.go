@@ -234,8 +234,7 @@ func (t *Transaction) DecodeBinary(r *io.BinReader) {
 func (t *Transaction) Verify(chainId uint64) error {
 	switch t.Type {
 	case EthLegacyTxType:
-		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-		from, err := signer.Sender(types.NewTx(t.EthTx))
+		from, err := verifySender(t.EthTx, chainId)
 		if err != nil {
 			return err
 		}

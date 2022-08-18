@@ -517,19 +517,10 @@ func (bc *Blockchain) AddBlock(block *block.Block) error {
 		mp = mempool.New(len(block.Transactions), 0, false)
 		for _, tx := range block.Transactions {
 			var err error
-
 			// Transactions are verified before adding them
 			// into the pool, so there is no point in doing
 			// it again even if we're verifying in-block transactions.
 			if bc.memPool.ContainsKey(tx.Hash()) {
-				// We always verify ethereum legacy tx
-				// because we need ecrecover sender
-				if tx.Type == transaction.EthLegacyTxType {
-					err = tx.Verify(bc.config.ChainID)
-					if err != nil {
-						return err
-					}
-				}
 				err = mp.Add(tx, bc)
 				if err == nil {
 					continue
@@ -539,6 +530,17 @@ func (bc *Blockchain) AddBlock(block *block.Block) error {
 			}
 			if err != nil && bc.config.VerifyTransactions {
 				return fmt.Errorf("transaction %s failed to verify: %w", tx.Hash().String(), err)
+			}
+		}
+	} else {
+		// We always verify ethereum legacy tx
+		// because we need ecrecover sender
+		for _, tx := range block.Transactions {
+			if tx.Type == transaction.EthLegacyTxType {
+				err := tx.Verify(bc.config.ChainID)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}
