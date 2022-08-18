@@ -24,7 +24,8 @@ import (
 func NewCommands() []cli.Command {
 	return []cli.Command{
 		{
-			Name: "contract",
+			Name:        "contract",
+			Description: "contract operations",
 			Subcommands: []cli.Command{
 				{
 					Name:   "call",
