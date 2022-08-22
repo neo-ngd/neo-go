@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/io"
 )
@@ -29,12 +28,11 @@ var (
 
 type Transaction struct {
 	Type  byte
-	EthTx *types.LegacyTx
+	EthTx *EthTx
 	NeoTx *NeoTx
 
 	Trimmed bool
 	EthSize int
-	EthFrom common.Address
 	hash    atomic.Value
 	size    atomic.Value
 }
@@ -53,7 +51,7 @@ func NewTx(t interface{}) *Transaction {
 	case *NeoTx:
 		tx.Type = NeoTxType
 		tx.NeoTx = v
-	case *types.LegacyTx:
+	case *EthTx:
 		tx.Type = EthLegacyTxType
 		tx.EthTx = v
 	default:
@@ -162,7 +160,7 @@ func (t *Transaction) Size() int {
 func (t *Transaction) From() common.Address {
 	switch t.Type {
 	case EthLegacyTxType:
-		return t.EthFrom
+		return t.EthTx.Sender
 	case NeoTxType:
 		return t.NeoTx.From
 	default:
@@ -205,8 +203,7 @@ func (t *Transaction) EncodeBinary(w *io.BinWriter) {
 	w.WriteB(t.Type)
 	switch t.Type {
 	case EthLegacyTxType:
-		err := rlp.Encode(w, t.EthTx)
-		w.Err = err
+		t.EthTx.EncodeBinary(w)
 	case NeoTxType:
 		t.NeoTx.EncodeBinary(w)
 	default:
@@ -218,9 +215,8 @@ func (t *Transaction) DecodeBinary(r *io.BinReader) {
 	t.Type = r.ReadB()
 	switch t.Type {
 	case EthLegacyTxType:
-		inner := new(types.LegacyTx)
-		err := rlp.Decode(r, inner)
-		r.Err = err
+		inner := new(EthTx)
+		inner.DecodeBinary(r)
 		t.EthTx = inner
 	case NeoTxType:
 		inner := new(NeoTx)
@@ -234,12 +230,7 @@ func (t *Transaction) DecodeBinary(r *io.BinReader) {
 func (t *Transaction) Verify(chainId uint64) error {
 	switch t.Type {
 	case EthLegacyTxType:
-		from, err := verifySender(t.EthTx, chainId)
-		if err != nil {
-			return err
-		}
-		t.EthFrom = from
-		return nil
+		return t.EthTx.Verify(chainId)
 	case NeoTxType:
 		if t.NeoTx.From != t.NeoTx.Witness.Address() {
 			return ErrWitnessUnmatch
@@ -253,13 +244,7 @@ func (t *Transaction) Verify(chainId uint64) error {
 func (t *Transaction) WithSignature(chainId uint64, sig []byte) error {
 	switch t.Type {
 	case EthLegacyTxType:
-		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-		r, s, v, err := signer.SignatureValues(types.NewTx(t.EthTx), sig)
-		if err != nil {
-			return err
-		}
-		t.EthTx.V, t.EthTx.R, t.EthTx.S = v, r, s
-		return nil
+		return t.EthTx.WithSignature(chainId, sig)
 	default:
 		return ErrUnsupportType
 	}
@@ -275,8 +260,8 @@ func (t *Transaction) WithWitness(witness Witness) error {
 
 func (t *Transaction) UnmarshalJSON(b []byte) error {
 	if t.Type == EthLegacyTxType {
-		tx := new(types.LegacyTx)
-		err := unmarshalEthTxJSON(b, tx)
+		tx := new(EthTx)
+		err := json.Unmarshal(b, tx)
 		if err != nil {
 			return err
 		}
@@ -301,7 +286,7 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 	}
 	switch t.Type {
 	case EthLegacyTxType:
-		return marshalEthTxJSON(t.EthTx)
+		return json.Marshal(t.EthTx)
 	case NeoTxType:
 		return json.Marshal(t.NeoTx)
 	default:
@@ -316,10 +301,7 @@ var (
 func (t Transaction) IsValid() error {
 	switch t.Type {
 	case EthLegacyTxType:
-		if t.EthTx.Value.Sign() < 0 {
-			return ErrNegativeValue
-		}
-		return nil
+		return t.EthTx.IsValid()
 	case NeoTxType:
 		return t.NeoTx.isValid()
 	default:

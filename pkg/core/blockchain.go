@@ -532,17 +532,6 @@ func (bc *Blockchain) AddBlock(block *block.Block) error {
 				return fmt.Errorf("transaction %s failed to verify: %w", tx.Hash().String(), err)
 			}
 		}
-	} else {
-		// We always verify ethereum legacy tx
-		// because we need ecrecover sender
-		for _, tx := range block.Transactions {
-			if tx.Type == transaction.EthLegacyTxType {
-				err := tx.Verify(bc.config.ChainID)
-				if err != nil {
-					return err
-				}
-			}
-		}
 	}
 	return bc.storeBlock(block, mp)
 }
