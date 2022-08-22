@@ -3,13 +3,14 @@ package transaction
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/neo-ngd/neo-go/pkg/io"
+	nio "github.com/neo-ngd/neo-go/pkg/io"
 )
 
 var (
@@ -73,26 +74,32 @@ func (t *EthTx) Verify(chainId uint64) (err error) {
 	return nil
 }
 
-func (t *EthTx) EncodeBinary(w *io.BinWriter) {
-	err := rlp.Encode(w, t.LegacyTx)
+func (t *EthTx) EncodeRLP(w io.Writer) error {
+	return rlp.Encode(w, t.LegacyTx)
+}
+
+func (t *EthTx) DecodeRLP(s *rlp.Stream) error {
+	return s.Decode(&t.LegacyTx)
+}
+
+func (t *EthTx) EncodeBinary(w *nio.BinWriter) {
+	err := rlp.Encode(w, t)
 	w.Err = err
 }
 
-func (t *EthTx) DecodeBinary(r *io.BinReader) {
+func (t *EthTx) DecodeBinary(r *nio.BinReader) {
 	var err error
 	defer func() {
 		r.Err = err
 	}()
-	inner := new(types.LegacyTx)
-	err = rlp.Decode(r, inner)
+	err = rlp.Decode(r, t)
 	if err != nil {
 		return
 	}
-	t.ChainID, t.Sender, err = deriveSigned(inner)
+	t.ChainID, t.Sender, err = deriveSigned(&t.LegacyTx)
 	if err != nil {
 		return
 	}
-	t.LegacyTx = *inner
 }
 
 func (t *EthTx) MarshalJSON() ([]byte, error) {
