@@ -833,12 +833,14 @@ func MakeEthTx(ctx *cli.Context, facc *wallet.Account, to *common.Address, value
 	if err != nil {
 		return err
 	}
-	tx := &types.LegacyTx{
-		Nonce:    nonce,
-		To:       to,
-		GasPrice: gasPrice,
-		Value:    value,
-		Data:     data,
+	tx := &transaction.EthTx{
+		LegacyTx: types.LegacyTx{
+			Nonce:    nonce,
+			To:       to,
+			GasPrice: gasPrice,
+			Value:    value,
+			Data:     data,
+		},
 	}
 	gas, err := c.Eth_EstimateGas(&result.TransactionObject{
 		From:     facc.Address,

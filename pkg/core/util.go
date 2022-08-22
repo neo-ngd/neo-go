@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/native"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
@@ -30,36 +29,60 @@ func createGenesisBlock() (*block.Block, error) {
 	initData := h[:4]
 	gas := (transaction.EthLegacyBaseLength + 4) * native.DefaultFeePerByte
 	gasPrice := big.NewInt(int64(native.DefaultGasPrice))
+	from := common.HexToAddress("01")
 	b := &block.Block{
 		Header: base,
 		Transactions: []*transaction.Transaction{
-			transaction.NewTx(&types.LegacyTx{
+			transaction.NewTx(&transaction.NeoTx{
+				Nonce:    0,
 				GasPrice: gasPrice,
 				Gas:      gas,
+				From:     from,
 				To:       &native.DesignationAddress,
 				Data:     initData,
 				Value:    big.NewInt(0),
+				Witness: transaction.Witness{
+					InvocationScript:   []byte{0},
+					VerificationScript: []byte{0},
+				},
 			}),
-			transaction.NewTx(&types.LegacyTx{
+			transaction.NewTx(&transaction.NeoTx{
+				Nonce:    0,
 				GasPrice: gasPrice,
 				Gas:      gas,
+				From:     from,
 				To:       &native.PolicyAddress,
 				Data:     initData,
 				Value:    big.NewInt(0),
+				Witness: transaction.Witness{
+					InvocationScript:   []byte{0},
+					VerificationScript: []byte{0},
+				},
 			}),
-			transaction.NewTx(&types.LegacyTx{
+			transaction.NewTx(&transaction.NeoTx{
+				Nonce:    0,
 				GasPrice: gasPrice,
 				Gas:      gas,
+				From:     from,
 				To:       &native.GASAddress,
 				Data:     initData,
 				Value:    big.NewInt(0),
+				Witness: transaction.Witness{
+					InvocationScript:   []byte{0},
+					VerificationScript: []byte{0},
+				},
 			}),
-			transaction.NewTx(&types.LegacyTx{
+			transaction.NewTx(&transaction.NeoTx{
 				GasPrice: gasPrice,
 				Gas:      gas,
+				From:     from,
 				To:       &native.ManagementAddress,
 				Data:     initData,
 				Value:    big.NewInt(0),
+				Witness: transaction.Witness{
+					InvocationScript:   []byte{0},
+					VerificationScript: []byte{0},
+				},
 			}),
 		},
 	}

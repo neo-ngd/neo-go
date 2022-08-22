@@ -723,14 +723,17 @@ func (s *Server) eth_signTransaction(params request.Params) (interface{}, *respo
 	if acc == nil {
 		return nil, response.NewInternalServerError("Could not found account to sign tx", errors.New("account not found"))
 	}
-	inner := &types.LegacyTx{
-		Nonce: s.chain.GetNonce(txObj.From) + 1,
-		To:    txObj.To,
-		Value: txObj.Value,
-		Data:  txObj.Data,
+	inner := &transaction.EthTx{
+		LegacyTx: types.LegacyTx{
+			Nonce: s.chain.GetNonce(txObj.From) + 1,
+			To:    txObj.To,
+			Value: txObj.Value,
+			Data:  txObj.Data,
+		},
+		ChainID: s.chainId,
+		Sender:  txObj.From,
 	}
 	tx := transaction.NewTx(inner)
-	tx.EthFrom = txObj.From
 	fakeBlock, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
@@ -777,15 +780,18 @@ func (s *Server) eth_sendTransaction(params request.Params) (interface{}, *respo
 	if acc == nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not found accout to sign tx: %s", err), errors.New("account not found"))
 	}
-	inner := &types.LegacyTx{
-		Nonce:    s.chain.GetNonce(txObj.From),
-		GasPrice: s.chain.GetGasPrice(),
-		To:       txObj.To,
-		Value:    txObj.Value,
-		Data:     txObj.Data,
+	inner := &transaction.EthTx{
+		LegacyTx: types.LegacyTx{
+			Nonce:    s.chain.GetNonce(txObj.From),
+			GasPrice: s.chain.GetGasPrice(),
+			To:       txObj.To,
+			Value:    txObj.Value,
+			Data:     txObj.Data,
+		},
+		ChainID: s.chainId,
+		Sender:  txObj.From,
 	}
 	tx := transaction.NewTx(inner)
-	tx.EthFrom = txObj.From
 	fakeBlock, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
@@ -847,16 +853,19 @@ func (s *Server) eth_call(params request.Params) (interface{}, *response.Error) 
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
-	inner := &types.LegacyTx{
-		Nonce:    s.chain.GetNonce(txObj.From) + 1,
-		GasPrice: s.chain.GetGasPrice(),
-		Gas:      txObj.Gas,
-		To:       txObj.To,
-		Value:    txObj.Value,
-		Data:     txObj.Data,
+	inner := &transaction.EthTx{
+		LegacyTx: types.LegacyTx{
+			Nonce:    s.chain.GetNonce(txObj.From) + 1,
+			GasPrice: s.chain.GetGasPrice(),
+			Gas:      txObj.Gas,
+			To:       txObj.To,
+			Value:    txObj.Value,
+			Data:     txObj.Data,
+		},
+		ChainID: s.chainId,
+		Sender:  txObj.From,
 	}
 	tx := transaction.NewTx(inner)
-	tx.EthFrom = txObj.From
 	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
@@ -889,16 +898,19 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 	}
 	var tx *transaction.Transaction
 	if txObj.Witness == nil {
-		inner := &types.LegacyTx{
-			Nonce:    s.chain.GetNonce(txObj.From) + 1,
-			GasPrice: s.chain.GetGasPrice(),
-			Gas:      txObj.Gas,
-			To:       txObj.To,
-			Value:    txObj.Value,
-			Data:     txObj.Data,
+		inner := &transaction.EthTx{
+			LegacyTx: types.LegacyTx{
+				Nonce:    s.chain.GetNonce(txObj.From) + 1,
+				GasPrice: s.chain.GetGasPrice(),
+				Gas:      txObj.Gas,
+				To:       txObj.To,
+				Value:    txObj.Value,
+				Data:     txObj.Data,
+			},
+			ChainID: s.chainId,
+			Sender:  txObj.From,
 		}
 		tx = transaction.NewTx(inner)
-		tx.EthFrom = txObj.From
 	} else {
 		inner := &transaction.NeoTx{
 			Nonce:    s.chain.GetNonce(txObj.From) + 1,
