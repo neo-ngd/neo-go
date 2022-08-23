@@ -168,6 +168,15 @@ func (t *Transaction) From() common.Address {
 	}
 }
 
+func (t *Transaction) AccessList() types.AccessList {
+	switch t.Type {
+	case EthTxType:
+		return t.EthTx.AccessList()
+	default:
+		return nil
+	}
+}
+
 func (t *Transaction) Hash() common.Hash {
 	if hash := t.hash.Load(); hash != nil {
 		return hash.(common.Hash)

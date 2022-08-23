@@ -699,7 +699,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			left    uint64
 			address common.Address
 		)
-		sdb.PrepareAccessList(tx.From(), tx.To(), evm.PrecompiledAddressesBerlin, nil)
+		sdb.PrepareAccessList(tx.From(), tx.To(), evm.PrecompiledAddressesBerlin, tx.AccessList())
 		if tx.To() == nil {
 			_, address, left, execErr = vm.Create(ic, tx.Data(), gas, tx.Value())
 		} else {
