@@ -21,9 +21,9 @@ func RlpSize(v interface{}) int {
 
 func CalculateNetworkFee(tx *Transaction, feePerByte uint64) uint64 {
 	switch tx.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		t := tx.EthTx
-		size := EthLegacyBaseLength + len(t.Data)
+		size := EthLegacyBaseLength + len(t.Data())
 		return uint64(size) * feePerByte
 	case NeoTxType:
 		t := tx.NeoTx

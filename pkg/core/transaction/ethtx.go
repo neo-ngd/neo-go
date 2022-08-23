@@ -18,17 +18,17 @@ var (
 )
 
 type EthTx struct {
-	types.LegacyTx
+	types.Transaction
 	ChainID uint64
 	Sender  common.Address
 }
 
-func NewEthTx(lt *types.LegacyTx) (*EthTx, error) {
+func NewEthTx(tx *types.Transaction) (*EthTx, error) {
 	t := &EthTx{
-		LegacyTx: *lt,
+		Transaction: *tx,
 	}
 	var err error
-	t.ChainID, t.Sender, err = deriveSigned(lt)
+	t.ChainID, t.Sender, err = deriveSigned(tx)
 	if err != nil {
 		return nil, err
 	}
@@ -36,26 +36,23 @@ func NewEthTx(lt *types.LegacyTx) (*EthTx, error) {
 }
 
 func NewEthTxFromBytes(data []byte) (*EthTx, error) {
-	lt := new(types.LegacyTx)
-	err := rlp.DecodeBytes(data, lt)
+	tx := new(types.Transaction)
+	err := tx.UnmarshalBinary(data)
 	if err != nil {
 		return nil, err
 	}
-	return NewEthTx(lt)
+	return NewEthTx(tx)
 }
 
 func (t *EthTx) WithSignature(chainId uint64, sig []byte) error {
 	signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-	r, s, v, err := signer.SignatureValues(types.NewTx(&t.LegacyTx), sig)
-	if err != nil {
-		return err
-	}
-	t.V, t.R, t.S = v, r, s
-	return nil
+	tx, err := t.Transaction.WithSignature(signer, sig)
+	t.Transaction = *tx
+	return err
 }
 
 func (t *EthTx) IsValid() error {
-	if t.Value.Sign() < 0 {
+	if t.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
 	return nil
@@ -63,7 +60,7 @@ func (t *EthTx) IsValid() error {
 
 func (t *EthTx) Verify(chainId uint64) (err error) {
 	if t.ChainID == 0 && t.Sender == (common.Address{}) {
-		t.ChainID, t.Sender, err = deriveSigned(&t.LegacyTx)
+		t.ChainID, t.Sender, err = deriveSigned(&t.Transaction)
 		if err != nil {
 			return
 		}
@@ -75,11 +72,11 @@ func (t *EthTx) Verify(chainId uint64) (err error) {
 }
 
 func (t *EthTx) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, t.LegacyTx)
+	return rlp.Encode(w, &t.Transaction)
 }
 
 func (t *EthTx) DecodeRLP(s *rlp.Stream) error {
-	return s.Decode(&t.LegacyTx)
+	return s.Decode(&t.Transaction)
 }
 
 func (t *EthTx) EncodeBinary(w *nio.BinWriter) {
@@ -96,25 +93,34 @@ func (t *EthTx) DecodeBinary(r *nio.BinReader) {
 	if err != nil {
 		return
 	}
-	t.ChainID, t.Sender, err = deriveSigned(&t.LegacyTx)
+	t.ChainID, t.Sender, err = deriveSigned(&t.Transaction)
 	if err != nil {
 		return
 	}
 }
 
 func (t *EthTx) MarshalJSON() ([]byte, error) {
+	v, r, s := t.Transaction.RawSignatureValues()
 	tx := &ethTxJson{
-		Nonce:    hexutil.Uint64(t.Nonce),
-		GasPrice: hexutil.Big(*t.GasPrice),
-		Gas:      hexutil.Uint64(t.Gas),
-		To:       t.To,
-		Value:    hexutil.Big(*t.Value),
-		Data:     hexutil.Bytes(t.Data),
-		V:        hexutil.Big(*t.V),
-		R:        hexutil.Big(*t.R),
-		S:        hexutil.Big(*t.S),
+		Nonce:    hexutil.Uint64(t.Nonce()),
+		GasPrice: hexutil.Big(*t.GasPrice()),
+		Gas:      hexutil.Uint64(t.Gas()),
+		To:       t.To(),
+		Value:    hexutil.Big(*t.Value()),
+		Data:     hexutil.Bytes(t.Data()),
+		V:        hexutil.Big(*v),
+		R:        hexutil.Big(*r),
+		S:        hexutil.Big(*s),
 		ChainID:  hexutil.Uint(t.ChainID),
 		Sender:   t.Sender,
+	}
+	if t.Transaction.Type() == types.DynamicFeeTxType {
+		tx.GasFeeCap = (*hexutil.Big)(t.Transaction.GasFeeCap())
+		tx.GasTipCap = (*hexutil.Big)(t.Transaction.GasTipCap())
+	}
+	if t.Transaction.Type() != types.LegacyTxType {
+		al := t.Transaction.AccessList()
+		tx.AccessList = &al
 	}
 	return json.Marshal(tx)
 }
@@ -125,22 +131,11 @@ func (t *EthTx) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-	t.Nonce = uint64(tx.Nonce)
-	t.GasPrice = (*big.Int)(&tx.GasPrice)
-	t.Gas = uint64(t.Gas)
-	t.To = tx.To
-	t.Value = (*big.Int)(&tx.Value)
-	t.Data = []byte(tx.Data)
-	t.V = (*big.Int)(&tx.V)
-	t.R = (*big.Int)(&tx.R)
-	t.S = (*big.Int)(&tx.S)
-	t.ChainID = uint64(tx.ChainID)
-	t.Sender = tx.Sender
 	return nil
 }
 
-func deriveSigned(t *types.LegacyTx) (chainId uint64, sender common.Address, err error) {
-	bigChainId := deriveChainId(t.V)
+func deriveSigned(t *types.Transaction) (chainId uint64, sender common.Address, err error) {
+	bigChainId := t.ChainId()
 	if !bigChainId.IsUint64() {
 		err = errors.New("ChainId is not uint64")
 		return
@@ -153,33 +148,24 @@ func deriveSigned(t *types.LegacyTx) (chainId uint64, sender common.Address, err
 	return
 }
 
-func deriveChainId(v *big.Int) *big.Int {
-	if v.BitLen() <= 64 {
-		v := v.Uint64()
-		if v == 27 || v == 28 {
-			return new(big.Int)
-		}
-		return new(big.Int).SetUint64((v - 35) / 2)
-	}
-	v = new(big.Int).Sub(v, big.NewInt(35))
-	return v.Div(v, big.NewInt(2))
-}
-
-func deriveSender(t *types.LegacyTx, chainId uint64) (common.Address, error) {
-	signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-	return signer.Sender(types.NewTx(t))
+func deriveSender(t *types.Transaction, chainId uint64) (common.Address, error) {
+	signer := types.NewLondonSigner(big.NewInt(int64(chainId)))
+	return signer.Sender(t)
 }
 
 type ethTxJson struct {
-	Nonce    hexutil.Uint64  `json:"nonce"`
-	GasPrice hexutil.Big     `json:"gasPrice"`
-	Gas      hexutil.Uint64  `json:"gas"`
-	To       *common.Address `json:"to,omitempty"`
-	Value    hexutil.Big     `json:"value"`
-	Data     hexutil.Bytes   `json:"data"`
-	V        hexutil.Big     `json:"V"`
-	R        hexutil.Big     `json:"R"`
-	S        hexutil.Big     `json:"S"`
-	ChainID  hexutil.Uint    `json:"chainId"`
-	Sender   common.Address  `json:"sender"`
+	Nonce      hexutil.Uint64    `json:"nonce"`
+	GasPrice   hexutil.Big       `json:"gasPrice"`
+	GasTipCap  *hexutil.Big      `json:"gasTipCap,omitempty"`
+	GasFeeCap  *hexutil.Big      `json:"gasFeeCap,omitempty"`
+	Gas        hexutil.Uint64    `json:"gas"`
+	To         *common.Address   `json:"to,omitempty"`
+	Value      hexutil.Big       `json:"value"`
+	AccessList *types.AccessList `json:"accessList,omitempty"`
+	Data       hexutil.Bytes     `json:"data"`
+	V          hexutil.Big       `json:"V"`
+	R          hexutil.Big       `json:"R"`
+	S          hexutil.Big       `json:"S"`
+	ChainID    hexutil.Uint      `json:"chainId"`
+	Sender     common.Address    `json:"sender"`
 }

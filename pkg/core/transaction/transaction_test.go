@@ -56,7 +56,7 @@ func TestNetFee(t *testing.T) {
 	ltx := &types.LegacyTx{}
 	err = rlp.DecodeBytes(d, ltx)
 	assert.NoError(t, err)
-	ethtx, err := NewEthTx(ltx)
+	ethtx, err := NewEthTx(types.NewTx(ltx))
 	assert.NoError(t, err)
 	tx := NewTx(ethtx)
 	actual := uint64(tx.Size()) * 1
@@ -74,7 +74,7 @@ func TestNetFee(t *testing.T) {
 
 func TestEncodeLegacy(t *testing.T) {
 	tx := NewTx(&EthTx{
-		LegacyTx: types.LegacyTx{},
+		Transaction: *types.NewTx(&types.LegacyTx{}),
 	})
 	b, err := nio.ToByteArray(tx)
 	assert.NoError(t, err)
@@ -97,12 +97,12 @@ func TestCancel(t *testing.T) {
 	err = rlp.DecodeBytes(b2, t2)
 	assert.NoError(t, err)
 	assert.Equal(t, t1.Nonce, t2.Nonce)
-	etx1, err := NewEthTx(t1)
+	etx1, err := NewEthTx(types.NewTx(t1))
 	assert.NoError(t, err)
 	b1, err = json.Marshal(etx1)
 	assert.NoError(t, err)
 	fmt.Println(string(b1))
-	etx2, err := NewEthTx(t2)
+	etx2, err := NewEthTx(types.NewTx(t2))
 	assert.NoError(t, err)
 	b2, err = json.Marshal(etx2)
 	assert.NoError(t, err)
