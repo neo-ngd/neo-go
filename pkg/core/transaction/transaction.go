@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	EthLegacyTxType     = byte(0)
+	EthTxType           = byte(0)
 	NeoTxType           = byte(1)
 	SignatureLength     = 64
 	MaxScriptLength     = math.MaxUint16
@@ -52,7 +52,7 @@ func NewTx(t interface{}) *Transaction {
 		tx.Type = NeoTxType
 		tx.NeoTx = v
 	case *EthTx:
-		tx.Type = EthLegacyTxType
+		tx.Type = EthTxType
 		tx.EthTx = v
 	default:
 		panic("unsupport tx")
@@ -71,8 +71,8 @@ func NewTransactionFromBytes(b []byte) (*Transaction, error) {
 
 func (t *Transaction) Nonce() uint64 {
 	switch t.Type {
-	case EthLegacyTxType:
-		return t.EthTx.Nonce
+	case EthTxType:
+		return t.EthTx.Nonce()
 	case NeoTxType:
 		return t.NeoTx.Nonce
 	default:
@@ -82,8 +82,8 @@ func (t *Transaction) Nonce() uint64 {
 
 func (t *Transaction) To() *common.Address {
 	switch t.Type {
-	case EthLegacyTxType:
-		return t.EthTx.To
+	case EthTxType:
+		return t.EthTx.To()
 	case NeoTxType:
 		return t.NeoTx.To
 	default:
@@ -93,8 +93,8 @@ func (t *Transaction) To() *common.Address {
 
 func (t *Transaction) Gas() uint64 {
 	switch t.Type {
-	case EthLegacyTxType:
-		return t.EthTx.Gas
+	case EthTxType:
+		return t.EthTx.Gas()
 	case NeoTxType:
 		return t.NeoTx.Gas
 	default:
@@ -104,8 +104,8 @@ func (t *Transaction) Gas() uint64 {
 
 func (t *Transaction) GasPrice() *big.Int {
 	switch t.Type {
-	case EthLegacyTxType:
-		return t.EthTx.GasPrice
+	case EthTxType:
+		return t.EthTx.GasPrice()
 	case NeoTxType:
 		return t.NeoTx.GasPrice
 	default:
@@ -120,8 +120,8 @@ func (t Transaction) Cost() *big.Int {
 
 func (t *Transaction) Value() *big.Int {
 	switch t.Type {
-	case EthLegacyTxType:
-		return t.EthTx.Value
+	case EthTxType:
+		return t.EthTx.Value()
 	case NeoTxType:
 		return t.NeoTx.Value
 	default:
@@ -131,8 +131,8 @@ func (t *Transaction) Value() *big.Int {
 
 func (t *Transaction) Data() []byte {
 	switch t.Type {
-	case EthLegacyTxType:
-		return t.EthTx.Data
+	case EthTxType:
+		return t.EthTx.Data()
 	case NeoTxType:
 		return t.NeoTx.Data
 	default:
@@ -146,8 +146,8 @@ func (t *Transaction) Size() int {
 	}
 	var size int
 	switch t.Type {
-	case EthLegacyTxType:
-		size = RlpSize(t.EthTx)
+	case EthTxType:
+		size = int(t.EthTx.Size())
 	case NeoTxType:
 		size = t.NeoTx.Size()
 	default:
@@ -159,7 +159,7 @@ func (t *Transaction) Size() int {
 
 func (t *Transaction) From() common.Address {
 	switch t.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		return t.EthTx.Sender
 	case NeoTxType:
 		return t.NeoTx.From
@@ -168,12 +168,21 @@ func (t *Transaction) From() common.Address {
 	}
 }
 
+func (t *Transaction) AccessList() types.AccessList {
+	switch t.Type {
+	case EthTxType:
+		return t.EthTx.AccessList()
+	default:
+		return nil
+	}
+}
+
 func (t *Transaction) Hash() common.Hash {
 	if hash := t.hash.Load(); hash != nil {
 		return hash.(common.Hash)
 	}
 	var h common.Hash
-	if t.Type == EthLegacyTxType {
+	if t.Type == EthTxType {
 		h = hash.RlpHash(t.EthTx)
 	} else {
 		h = t.NeoTx.Hash()
@@ -183,9 +192,9 @@ func (t *Transaction) Hash() common.Hash {
 }
 
 func (t Transaction) SignHash(chainId uint64) common.Hash {
-	if t.Type == EthLegacyTxType {
+	if t.Type == EthTxType {
 		signer := types.NewEIP155Signer(big.NewInt(int64(chainId)))
-		return signer.Hash(types.NewTx(t.EthTx))
+		return signer.Hash(&t.EthTx.Transaction)
 	} else {
 		return t.Hash()
 	}
@@ -202,7 +211,7 @@ func (t Transaction) FeePerByte() uint64 {
 func (t *Transaction) EncodeBinary(w *io.BinWriter) {
 	w.WriteB(t.Type)
 	switch t.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		t.EthTx.EncodeBinary(w)
 	case NeoTxType:
 		t.NeoTx.EncodeBinary(w)
@@ -214,7 +223,7 @@ func (t *Transaction) EncodeBinary(w *io.BinWriter) {
 func (t *Transaction) DecodeBinary(r *io.BinReader) {
 	t.Type = r.ReadB()
 	switch t.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		inner := new(EthTx)
 		inner.DecodeBinary(r)
 		t.EthTx = inner
@@ -229,7 +238,7 @@ func (t *Transaction) DecodeBinary(r *io.BinReader) {
 
 func (t *Transaction) Verify(chainId uint64) error {
 	switch t.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		return t.EthTx.Verify(chainId)
 	case NeoTxType:
 		if t.NeoTx.From != t.NeoTx.Witness.Address() {
@@ -243,7 +252,7 @@ func (t *Transaction) Verify(chainId uint64) error {
 
 func (t *Transaction) WithSignature(chainId uint64, sig []byte) error {
 	switch t.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		return t.EthTx.WithSignature(chainId, sig)
 	default:
 		return ErrUnsupportType
@@ -259,7 +268,7 @@ func (t *Transaction) WithWitness(witness Witness) error {
 }
 
 func (t *Transaction) UnmarshalJSON(b []byte) error {
-	if t.Type == EthLegacyTxType {
+	if t.Type == EthTxType {
 		tx := new(EthTx)
 		err := json.Unmarshal(b, tx)
 		if err != nil {
@@ -285,7 +294,7 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 		return json.Marshal(t.Hash())
 	}
 	switch t.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		return json.Marshal(t.EthTx)
 	case NeoTxType:
 		return json.Marshal(t.NeoTx)
@@ -295,12 +304,17 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 }
 
 var (
-	ErrInvalidTxType = errors.New("invalid tx type")
+	ErrInvalidTxType    = errors.New("invalid tx type")
+	ErrTipVeryHigh      = errors.New("max priority fee per gas higher than 2^256-1")
+	ErrFeeCapVeryHigh   = errors.New("max fee per gas higher than 2^256-1")
+	ErrTipAboveFeeCap   = errors.New("max priority fee per gas higher than max fee per gas")
+	ErrValueVeryHigh    = errors.New("value higher than 2^256-1")
+	ErrGasPriceVeryHigh = errors.New("gas price higher than 2^256-1")
 )
 
 func (t Transaction) IsValid() error {
 	switch t.Type {
-	case EthLegacyTxType:
+	case EthTxType:
 		return t.EthTx.IsValid()
 	case NeoTxType:
 		return t.NeoTx.isValid()

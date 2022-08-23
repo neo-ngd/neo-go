@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/neo-ngd/neo-go/cli/flags"
 	"github.com/neo-ngd/neo-go/cli/input"
 	"github.com/neo-ngd/neo-go/cli/options"
@@ -833,31 +832,33 @@ func MakeEthTx(ctx *cli.Context, facc *wallet.Account, to *common.Address, value
 	if err != nil {
 		return err
 	}
+	ltx := &types.LegacyTx{
+		Nonce:    nonce,
+		To:       to,
+		GasPrice: gasPrice,
+		Value:    value,
+		Data:     data,
+	}
 	tx := &transaction.EthTx{
-		LegacyTx: types.LegacyTx{
-			Nonce:    nonce,
-			To:       to,
-			GasPrice: gasPrice,
-			Value:    value,
-			Data:     data,
-		},
+		Transaction: *types.NewTx(ltx),
 	}
 	gas, err := c.Eth_EstimateGas(&result.TransactionObject{
 		From:     facc.Address,
-		To:       tx.To,
-		GasPrice: tx.GasPrice,
-		Value:    tx.Value,
-		Data:     tx.Data,
+		To:       tx.To(),
+		GasPrice: tx.GasPrice(),
+		Value:    tx.Value(),
+		Data:     tx.Data(),
 	})
 	if err != nil {
 		return err
 	}
-	tx.Gas = gas
+	ltx.Gas = gas
+	tx.Transaction = *types.NewTx(ltx)
 	err = facc.SignTx(chainId, transaction.NewTx(tx))
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("can't sign tx: %w", err), 1)
 	}
-	b, err := rlp.EncodeToBytes(tx)
+	b, err := tx.Transaction.MarshalBinary()
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed encode tx to bytes: %w", err), 1)
 	}

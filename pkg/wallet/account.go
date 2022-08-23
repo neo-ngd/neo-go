@@ -58,7 +58,7 @@ func (a *Account) SignTx(chainId uint64, t *transaction.Transaction) error {
 		}
 		t.WithWitness(witness)
 		return nil
-	case transaction.EthLegacyTxType:
+	case transaction.EthTxType:
 		sig, err := crypto.Sign(t.SignHash(chainId).Bytes(), &a.privateKey.PrivateKey)
 		if err != nil {
 			return err

@@ -699,7 +699,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			left    uint64
 			address common.Address
 		)
-		sdb.PrepareAccessList(tx.From(), tx.To(), evm.PrecompiledAddressesBerlin, nil)
+		sdb.PrepareAccessList(tx.From(), tx.To(), evm.PrecompiledAddressesBerlin, tx.AccessList())
 		if tx.To() == nil {
 			_, address, left, execErr = vm.Create(ic, tx.Data(), gas, tx.Value())
 		} else {
@@ -1246,6 +1246,9 @@ func (bc *Blockchain) verifyAndPoolTx(t *transaction.Transaction, pool *mempool.
 	err := t.IsValid()
 	if err != nil {
 		return err
+	}
+	if t.Gas() > bc.config.MaxBlockGas {
+		return fmt.Errorf("gas exceeds block gas limit, limit: %d, actual: %d", bc.config.MaxBlockGas, t.Gas())
 	}
 	if t.GasPrice().Cmp(bc.GetGasPrice()) < 0 {
 		return fmt.Errorf("gas price too low, expect %s, actual %s", bc.GetGasPrice(), t.GasPrice())
