@@ -55,6 +55,21 @@ func (t *EthTx) IsValid() error {
 	if t.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
+	if t.Value().BitLen() > 256 {
+		return ErrValueVeryHigh
+	}
+	if t.GasFeeCap().BitLen() > 256 {
+		return ErrFeeCapVeryHigh
+	}
+	if t.GasTipCap().BitLen() > 256 {
+		return ErrTipVeryHigh
+	}
+	if t.GasTipCap().Cmp(t.GasFeeCap()) > 0 {
+		return ErrTipAboveFeeCap
+	}
+	if t.GasPrice().BitLen() > 256 {
+		return ErrGasPriceVeryHigh
+	}
 	return nil
 }
 

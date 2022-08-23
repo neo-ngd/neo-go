@@ -1247,6 +1247,9 @@ func (bc *Blockchain) verifyAndPoolTx(t *transaction.Transaction, pool *mempool.
 	if err != nil {
 		return err
 	}
+	if t.Gas() > bc.config.MaxBlockGas {
+		return fmt.Errorf("gas exceeds block gas limit, limit: %d, actual: %d", bc.config.MaxBlockGas, t.Gas())
+	}
 	if t.GasPrice().Cmp(bc.GetGasPrice()) < 0 {
 		return fmt.Errorf("gas price too low, expect %s, actual %s", bc.GetGasPrice(), t.GasPrice())
 	}

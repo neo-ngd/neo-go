@@ -147,7 +147,7 @@ func (t *Transaction) Size() int {
 	var size int
 	switch t.Type {
 	case EthTxType:
-		size = RlpSize(t.EthTx)
+		size = int(t.EthTx.Size())
 	case NeoTxType:
 		size = t.NeoTx.Size()
 	default:
@@ -304,7 +304,12 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 }
 
 var (
-	ErrInvalidTxType = errors.New("invalid tx type")
+	ErrInvalidTxType    = errors.New("invalid tx type")
+	ErrTipVeryHigh      = errors.New("max priority fee per gas higher than 2^256-1")
+	ErrFeeCapVeryHigh   = errors.New("max fee per gas higher than 2^256-1")
+	ErrTipAboveFeeCap   = errors.New("max priority fee per gas higher than max fee per gas")
+	ErrValueVeryHigh    = errors.New("value higher than 2^256-1")
+	ErrGasPriceVeryHigh = errors.New("gas price higher than 2^256-1")
 )
 
 func (t Transaction) IsValid() error {

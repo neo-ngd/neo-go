@@ -269,6 +269,12 @@ func (t *NeoTx) isValid() error {
 	if t.Value.Sign() < 0 || t.GasPrice.Sign() < 0 {
 		return ErrNegativeValue
 	}
+	if t.Value.BitLen() > 256 {
+		return ErrValueVeryHigh
+	}
+	if t.GasPrice.BitLen() > 256 {
+		return ErrGasPriceVeryHigh
+	}
 	if t.From == (common.Address{}) {
 		return ErrZeroFromAddress
 	}
