@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -107,4 +108,25 @@ func TestCancel(t *testing.T) {
 	b2, err = json.Marshal(etx2)
 	assert.NoError(t, err)
 	fmt.Println(string(b2))
+}
+
+func TestJson(t *testing.T) {
+	ltx := &types.LegacyTx{
+		Nonce: 1,
+		Data:  []byte{1},
+		To:    &common.Address{},
+	}
+	tx := types.NewTx(ltx)
+	etx := &EthTx{
+		Transaction: *tx,
+	}
+	txx := NewTx(etx)
+	b, err := json.Marshal(txx)
+	assert.NoError(t, err)
+	t.Log(string(b))
+	txxx := new(Transaction)
+	err = json.Unmarshal(b, txxx)
+	assert.NoError(t, err)
+	assert.Equal(t, EthTxType, txxx.Type)
+	assert.Equal(t, types.LegacyTxType, int(txxx.EthTx.Type()))
 }

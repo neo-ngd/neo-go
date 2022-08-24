@@ -224,7 +224,7 @@ type NeoTxJson struct {
 }
 
 // MarshalJSON implements json.Marshaler interface.
-func (t *NeoTx) MarshalJSON() ([]byte, error) {
+func (t NeoTx) MarshalJSON() ([]byte, error) {
 	tx := NeoTxJson{
 		TxID:     t.Hash(),
 		Size:     hexutil.Uint(t.Size()),

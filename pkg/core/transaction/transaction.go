@@ -32,7 +32,6 @@ type Transaction struct {
 	NeoTx *NeoTx
 
 	Trimmed bool
-	EthSize int
 	hash    atomic.Value
 	size    atomic.Value
 }
@@ -268,28 +267,35 @@ func (t *Transaction) WithWitness(witness Witness) error {
 }
 
 func (t *Transaction) UnmarshalJSON(b []byte) error {
-	if t.Type == EthTxType {
-		tx := new(EthTx)
-		err := json.Unmarshal(b, tx)
-		if err != nil {
-			return err
-		}
-		t.EthTx = tx
-		return nil
-	} else if t.Type == NeoTxType {
+	tmp := make(map[string]interface{})
+	err := json.Unmarshal(b, &tmp)
+	if err != nil {
+		return err
+	}
+	if _, ok := tmp["witness"]; ok {
 		tx := new(NeoTx)
-		err := json.Unmarshal(b, tx)
+		err = json.Unmarshal(b, tx)
 		if err != nil {
 			return err
 		}
+		t.Type = NeoTxType
 		t.NeoTx = tx
 		return nil
-	} else {
-		return ErrUnsupportType
 	}
+	if _, ok := tmp["type"]; ok {
+		tx := new(EthTx)
+		err = json.Unmarshal(b, tx)
+		if err != nil {
+			return err
+		}
+		t.Type = EthTxType
+		t.EthTx = tx
+		return nil
+	}
+	return ErrUnsupportType
 }
 
-func (t *Transaction) MarshalJSON() ([]byte, error) {
+func (t Transaction) MarshalJSON() ([]byte, error) {
 	if t.Trimmed {
 		return json.Marshal(t.Hash())
 	}

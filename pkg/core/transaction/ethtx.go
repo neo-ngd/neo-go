@@ -114,24 +114,26 @@ func (t *EthTx) DecodeBinary(r *nio.BinReader) {
 	}
 }
 
-func (t *EthTx) MarshalJSON() ([]byte, error) {
+func (t EthTx) MarshalJSON() ([]byte, error) {
 	v, r, s := t.Transaction.RawSignatureValues()
 	tx := &ethTxJson{
-		Nonce:    hexutil.Uint64(t.Nonce()),
-		GasPrice: hexutil.Big(*t.GasPrice()),
-		Gas:      hexutil.Uint64(t.Gas()),
-		To:       t.To(),
-		Value:    hexutil.Big(*t.Value()),
-		Data:     hexutil.Bytes(t.Data()),
-		V:        hexutil.Big(*v),
-		R:        hexutil.Big(*r),
-		S:        hexutil.Big(*s),
-		ChainID:  hexutil.Uint(t.ChainID),
-		Sender:   t.Sender,
+		Type:    hexutil.Uint(t.Type()),
+		Nonce:   hexutil.Uint64(t.Nonce()),
+		Gas:     hexutil.Uint64(t.Gas()),
+		To:      t.To(),
+		Value:   hexutil.Big(*t.Value()),
+		Data:    hexutil.Bytes(t.Data()),
+		V:       hexutil.Big(*v),
+		R:       hexutil.Big(*r),
+		S:       hexutil.Big(*s),
+		ChainID: hexutil.Uint(t.ChainID),
+		Sender:  t.Sender,
 	}
 	if t.Transaction.Type() == types.DynamicFeeTxType {
 		tx.GasFeeCap = (*hexutil.Big)(t.Transaction.GasFeeCap())
 		tx.GasTipCap = (*hexutil.Big)(t.Transaction.GasTipCap())
+	} else {
+		tx.GasPrice = (*hexutil.Big)(t.GasPrice())
 	}
 	if t.Transaction.Type() != types.LegacyTxType {
 		al := t.Transaction.AccessList()
@@ -145,6 +147,54 @@ func (t *EthTx) UnmarshalJSON(data []byte) error {
 	err := json.Unmarshal(data, tx)
 	if err != nil {
 		return err
+	}
+	t.ChainID = uint64(tx.ChainID)
+	t.Sender = tx.Sender
+	switch tx.Type {
+	case types.LegacyTxType:
+		ltx := &types.LegacyTx{
+			Nonce:    uint64(tx.Nonce),
+			GasPrice: (*big.Int)(tx.GasPrice),
+			Gas:      uint64(tx.Gas),
+			To:       tx.To,
+			Value:    (*big.Int)(&tx.Value),
+			Data:     tx.Data,
+			V:        (*big.Int)(&tx.V),
+			R:        (*big.Int)(&tx.R),
+			S:        (*big.Int)(&tx.S),
+		}
+		t.Transaction = *types.NewTx(ltx)
+	case types.AccessListTxType:
+		atx := &types.AccessListTx{
+			Nonce:      uint64(tx.Nonce),
+			GasPrice:   (*big.Int)(tx.GasPrice),
+			Gas:        uint64(tx.Gas),
+			To:         tx.To,
+			Value:      (*big.Int)(&tx.Value),
+			AccessList: *tx.AccessList,
+			Data:       tx.Data,
+			V:          (*big.Int)(&tx.V),
+			R:          (*big.Int)(&tx.R),
+			S:          (*big.Int)(&tx.S),
+		}
+		t.Transaction = *types.NewTx(atx)
+	case types.DynamicFeeTxType:
+		dtx := &types.DynamicFeeTx{
+			Nonce:      uint64(tx.Nonce),
+			GasTipCap:  (*big.Int)(tx.GasTipCap),
+			GasFeeCap:  (*big.Int)(tx.GasFeeCap),
+			Gas:        uint64(tx.Gas),
+			To:         tx.To,
+			Value:      (*big.Int)(&tx.Value),
+			AccessList: *tx.AccessList,
+			Data:       tx.Data,
+			V:          (*big.Int)(&tx.V),
+			R:          (*big.Int)(&tx.R),
+			S:          (*big.Int)(&tx.S),
+		}
+		t.Transaction = *types.NewTx(dtx)
+	default:
+		return ErrUnsupportType
 	}
 	return nil
 }
@@ -169,8 +219,9 @@ func deriveSender(t *types.Transaction, chainId uint64) (common.Address, error) 
 }
 
 type ethTxJson struct {
+	Type       hexutil.Uint      `json:"type"`
 	Nonce      hexutil.Uint64    `json:"nonce"`
-	GasPrice   hexutil.Big       `json:"gasPrice"`
+	GasPrice   *hexutil.Big      `json:"gasPrice,omitempty"`
 	GasTipCap  *hexutil.Big      `json:"gasTipCap,omitempty"`
 	GasFeeCap  *hexutil.Big      `json:"gasFeeCap,omitempty"`
 	Gas        hexutil.Uint64    `json:"gas"`
