@@ -319,10 +319,7 @@ func restoreDB(ctx *cli.Context) error {
 		}
 	}
 
-	var skip uint32
-	if chain.BlockHeight() != 0 {
-		skip = chain.BlockHeight() + 1 - start
-	}
+	skip := chain.BlockHeight() + 1 - start
 
 	var allBlocks = reader.ReadU32LE()
 	if reader.Err != nil {
