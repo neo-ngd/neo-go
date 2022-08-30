@@ -607,14 +607,14 @@ func sign(ctx *cli.Context) error {
 	defer wall.Close()
 
 	signContext := new(SignContext)
-	err = signContext.UnmarshalJSON([]byte(ctx.String("context")))
+	err = json.Unmarshal([]byte(ctx.String("context")), signContext)
 	if err != nil {
-		return cli.NewExitError("sign context invalid", 1)
+		return cli.NewExitError(fmt.Errorf("sign context invalid: %w", err), 1)
 	}
 
 	err = Sign(wall, signContext)
 	if err != nil {
-		return cli.NewExitError("sign context error", 1)
+		return cli.NewExitError(fmt.Errorf("sign context error: %w", err), 1)
 	}
 	var tx *transaction.Transaction
 	if signContext.IsComplete() {
