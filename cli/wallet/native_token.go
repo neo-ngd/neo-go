@@ -148,6 +148,9 @@ func transferNativeToken(ctx *cli.Context) error {
 	if facc == nil {
 		return cli.NewExitError(fmt.Errorf("could not find any account in wallet"), 1)
 	}
+	if facc.IsMultiSig() {
+		return MakeNeoTx(ctx, wall, facc.Address, to, amount, nil)
+	}
 	pass, err := input.ReadPassword(fmt.Sprintf("Enter %s password > ", facc.Address))
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("error reading password: %w", err), 1)
