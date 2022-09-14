@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
 	"os"
+	"strings"
+	//"syscall"
 
 	"github.com/neo-ngd/neo-go/cli/contract"
 	"github.com/neo-ngd/neo-go/cli/native"
@@ -16,8 +20,23 @@ import (
 func main() {
 	ctl := newApp()
 
-	if err := ctl.Run(os.Args); err != nil {
-		panic(err)
+	var command []string
+
+	cli.OsExiter = func(c int) {}
+	reader := bufio.NewReader(os.Stdin)
+	for {
+		fmt.Print("> ")
+		text, _ := reader.ReadString('\n')
+		text = strings.TrimSpace(text)
+		if text == "" {
+			continue
+		}
+		if text == "quit" || text == "q" {
+			break
+		}
+		command = append(os.Args, strings.Split(text, " ")...)
+		ctl.Run(command)
+		command = []string{}
 	}
 }
 

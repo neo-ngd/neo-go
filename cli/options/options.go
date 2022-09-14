@@ -46,7 +46,7 @@ var errNoEndpoint = errors.New("no RPC endpoint specified, use option '--" + RPC
 
 // GetNetwork examines Context's flags and returns the appropriate network. It
 // defaults to PrivNet if no flags are given.
-func GetNetwork(ctx *cli.Context) uint64 {
+func GetNetwork(ctx *cli.Context) string {
 	var net = netmode.PrivNet
 	if ctx.Bool("testnet") {
 		net = netmode.TestNet

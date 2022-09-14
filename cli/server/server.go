@@ -3,11 +3,13 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/natefinch/lumberjack"
 	"net/url"
 	"os"
 	"os/signal"
 	"runtime"
 	"syscall"
+	"time"
 
 	"github.com/neo-ngd/neo-go/cli/options"
 	"github.com/neo-ngd/neo-go/pkg/config"
@@ -142,12 +144,15 @@ func handleLoggingParams(ctx *cli.Context, cfg config.ApplicationConfiguration) 
 		level = zapcore.DebugLevel
 	}
 
+	ec := zap.NewProductionEncoderConfig()
+	ec.EncodeDuration = zapcore.StringDurationEncoder
+	ec.EncodeLevel = zapcore.CapitalLevelEncoder
+	ec.EncodeTime = zapcore.ISO8601TimeEncoder
+
 	cc := zap.NewProductionConfig()
+	cc.EncoderConfig = ec
 	cc.DisableCaller = true
 	cc.DisableStacktrace = true
-	cc.EncoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-	cc.EncoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	cc.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	cc.Encoding = "console"
 	cc.Level = zap.NewAtomicLevelAt(level)
 	cc.Sampling = nil
@@ -200,6 +205,17 @@ func handleLoggingParams(ctx *cli.Context, cfg config.ApplicationConfiguration) 
 		}
 
 		cc.OutputPaths = []string{logPath}
+
+		hook := &lumberjack.Logger{
+			Filename:   fmt.Sprintf("%s/%04d%02d%02d", logPath, time.Now().Year(), time.Now().Month(), time.Now().Day()),
+			MaxSize:    1,
+			MaxAge:     7,
+			Compress:   false,
+		}
+		ws := zapcore.AddSync(hook)
+		encoder := zapcore.NewConsoleEncoder(ec)
+		core := zapcore.NewCore(encoder, ws, level)
+		return zap.New(core), _winfileSinkCloser, nil
 	}
 
 	log, err := cc.Build()
@@ -412,9 +428,7 @@ func startServer(ctx *cli.Context) error {
 		return cli.NewExitError(err, 1)
 	}
 	asConsensus := ctx.Bool("consensus")
-	if err != nil {
-		return cli.NewExitError(err, 1)
-	}
+
 	log, logCloser, err := handleLoggingParams(ctx, cfg.ApplicationConfiguration)
 	if err != nil {
 		return cli.NewExitError(err, 1)
@@ -424,7 +438,6 @@ func startServer(ctx *cli.Context) error {
 	}
 
 	grace, cancel := context.WithCancel(newGraceContext())
-	defer cancel()
 
 	serverConfig := network.NewServerConfig(cfg)
 
@@ -432,11 +445,6 @@ func startServer(ctx *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError(err, 1)
 	}
-	defer func() {
-		pprof.ShutDown()
-		prometheus.ShutDown()
-		chain.Close()
-	}()
 
 	serv, err := network.NewServer(serverConfig, chain, log)
 	if err != nil {
@@ -460,47 +468,54 @@ func startServer(ctx *cli.Context) error {
 	errChan := make(chan error)
 
 	go serv.Start(errChan)
-	rpcServer.Start(errChan)
+	go func() {
+		rpcServer.Start(errChan)
+		sighupCh := make(chan os.Signal, 1)
+		signal.Notify(sighupCh, syscall.SIGHUP)
 
-	sighupCh := make(chan os.Signal, 1)
-	signal.Notify(sighupCh, syscall.SIGHUP)
+		defer cancel()
+		defer func() {
+			pprof.ShutDown()
+			prometheus.ShutDown()
+			chain.Close()
+		}()
+		var shutdownErr error
+	Main:
+		for {
+			select {
+			case err := <-errChan:
+				shutdownErr = fmt.Errorf("server error: %w", err)
+				cancel()
+			case sig := <-sighupCh:
+				switch sig {
+				case syscall.SIGHUP:
+					log.Info("SIGHUP received, restarting rpc-server")
+					serverErr := rpcServer.Shutdown()
+					if serverErr != nil {
+						errChan <- fmt.Errorf("error while restarting rpc-server: %w", serverErr)
+						break
+					}
+					rpcServer = server.New(chain, cfg.ApplicationConfiguration.RPC, serv, serverConfig.Wallet, log)
+					rpcServer.Start(errChan)
+				}
+			case <-grace.Done():
+				signal.Stop(sighupCh)
+				serv.Shutdown()
+				if serverErr := rpcServer.Shutdown(); serverErr != nil {
+					shutdownErr = fmt.Errorf("error on shutdown: %w", serverErr)
+				}
+				break Main
+			}
+		}
+
+		if shutdownErr != nil {
+			cli.NewExitError(shutdownErr, 1)
+		}
+	}()
 
 	fmt.Fprintln(ctx.App.Writer, Logo())
 	fmt.Fprintln(ctx.App.Writer, serv.UserAgent)
 	fmt.Fprintln(ctx.App.Writer)
-
-	var shutdownErr error
-Main:
-	for {
-		select {
-		case err := <-errChan:
-			shutdownErr = fmt.Errorf("server error: %w", err)
-			cancel()
-		case sig := <-sighupCh:
-			switch sig {
-			case syscall.SIGHUP:
-				log.Info("SIGHUP received, restarting rpc-server")
-				serverErr := rpcServer.Shutdown()
-				if serverErr != nil {
-					errChan <- fmt.Errorf("error while restarting rpc-server: %w", serverErr)
-					break
-				}
-				rpcServer = server.New(chain, cfg.ApplicationConfiguration.RPC, serv, serverConfig.Wallet, log)
-				rpcServer.Start(errChan)
-			}
-		case <-grace.Done():
-			signal.Stop(sighupCh)
-			serv.Shutdown()
-			if serverErr := rpcServer.Shutdown(); serverErr != nil {
-				shutdownErr = fmt.Errorf("error on shutdown: %w", serverErr)
-			}
-			break Main
-		}
-	}
-
-	if shutdownErr != nil {
-		return cli.NewExitError(shutdownErr, 1)
-	}
 
 	return nil
 }

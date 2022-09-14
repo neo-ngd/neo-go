@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/neo-ngd/neo-go/pkg/config/netmode"
 	"github.com/neo-ngd/neo-go/pkg/rpc"
 	"gopkg.in/yaml.v2"
 )
@@ -28,8 +27,8 @@ func (c Config) GenerateUserAgent() string {
 
 // Load attempts to load the config from the given
 // path for the given netMode.
-func Load(path string, chainId uint64) (Config, error) {
-	configPath := fmt.Sprintf("%s/protocol.%s.yml", path, netmode.String(chainId))
+func Load(path string, chainMode string) (Config, error) {
+	configPath := fmt.Sprintf("%s/protocol.%s.yml", path, chainMode)
 	return LoadFile(configPath)
 }
 
