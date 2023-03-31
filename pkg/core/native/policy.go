@@ -63,7 +63,7 @@ func NewPolicy(cs *Contracts) *Policy {
 	return p
 }
 
-func createBlockKey(address common.Address) []byte {
+func (p *Policy) createBlockKey(address common.Address) []byte {
 	return makeAddressKey(PrefixBlockedAcount, address)
 }
 
@@ -96,7 +96,7 @@ func (p *Policy) ContractCall_initialize(ic InteropContext) error {
 }
 
 func (p *Policy) ContractCall_setFeePerByte(ic InteropContext, fee uint64) error {
-	err := p.cs.Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkConsensus(ic)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (p *Policy) ContractCall_setFeePerByte(ic InteropContext, fee uint64) error
 }
 
 func (p *Policy) ContractCall_setGasPrice(ic InteropContext, gasPrice uint64) error {
-	err := p.cs.Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkConsensus(ic)
 	if err != nil {
 		return err
 	}
@@ -120,14 +120,14 @@ func (p *Policy) ContractCall_setGasPrice(ic InteropContext, gasPrice uint64) er
 }
 
 func (p *Policy) ContractCall_blockAccount(ic InteropContext, address common.Address) error {
-	err := p.cs.Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkConsensus(ic)
 	if err != nil {
 		return err
 	}
 	if err := p.checkSystem(ic, address); err != nil {
 		return err
 	}
-	key := createBlockKey(address)
+	key := p.createBlockKey(address)
 	item := ic.Dao().GetStorageItem(p.Address, key)
 	if item != nil {
 		return errors.New("already blocked")
@@ -138,14 +138,14 @@ func (p *Policy) ContractCall_blockAccount(ic InteropContext, address common.Add
 }
 
 func (p *Policy) ContractCall_unblockAccount(ic InteropContext, address common.Address) error {
-	err := p.cs.Designate.checkCommittee(ic)
+	err := p.cs.Designate.checkConsensus(ic)
 	if err != nil {
 		return err
 	}
 	if err := p.checkSystem(ic, address); err != nil {
 		return err
 	}
-	key := createBlockKey(address)
+	key := p.createBlockKey(address)
 	item := ic.Dao().GetStorageItem(p.Address, key)
 	if item == nil {
 		return errors.New("account isn't blocked")
@@ -204,7 +204,7 @@ func (p *Policy) checkSystem(ic InteropContext, address common.Address) error {
 }
 
 func (p *Policy) IsBlocked(d *dao.Simple, address common.Address) bool {
-	key := createBlockKey(address)
+	key := p.createBlockKey(address)
 	item := d.GetStorageItem(p.Address, key)
 	return item != nil
 }

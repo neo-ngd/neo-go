@@ -240,7 +240,7 @@ func (bc *Blockchain) init() error {
 		bc.dao.PutVersion(ver)
 		bc.dao.Version = ver
 		bc.persistent.Version = ver
-		genesisBlock, err := createGenesisBlock()
+		genesisBlock, err := createGenesisBlock(&bc.config)
 		if err != nil {
 			return err
 		}
@@ -290,7 +290,7 @@ func (bc *Blockchain) init() error {
 		if len(bc.headerHashes) > 0 {
 			targetHash = bc.headerHashes[len(bc.headerHashes)-1]
 		} else {
-			genesisBlock, err := createGenesisBlock()
+			genesisBlock, err := createGenesisBlock(&bc.config)
 			if err != nil {
 				return err
 			}
@@ -717,7 +717,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			sdb.AddBalance(ic.Coinbase(), big.NewInt(0).Mul(big.NewInt(int64(netFee)), gasPrice))
 		}
 		if gas > left {
-			commitAddress, err := bc.GetCommitteeAddress()
+			commitAddress, err := bc.GetConsensusAddress()
 			if err != nil {
 				panic(err)
 			}
@@ -1385,18 +1385,8 @@ func (bc *Blockchain) PoolTxWithData(t *transaction.Transaction, data interface{
 	return bc.verifyAndPoolTx(t, mp, feer, data)
 }
 
-// GetCommittee returns the sorted list of public keys of nodes in committee.
-func (bc *Blockchain) GetCommittee() (keys.PublicKeys, error) {
-	pubs, err := bc.contracts.Designate.GetCommitteeMembers(bc.dao, bc.BlockHeight()+1)
-	if err != nil {
-		return nil, err
-	}
-	sort.Sort(pubs)
-	return pubs, nil
-}
-
-func (bc *Blockchain) GetCommitteeAddress() (common.Address, error) {
-	return bc.contracts.Designate.GetCommitteeAddress(bc.dao, bc.BlockHeight()+1)
+func (bc *Blockchain) GetConsensusAddress() (common.Address, error) {
+	return bc.contracts.Designate.GetConsensusAddress(bc.dao, bc.BlockHeight()+1)
 }
 
 // GetValidators returns current validators.
@@ -1439,19 +1429,13 @@ func (bc *Blockchain) VerifyWitness(h common.Address, c hash.Hashable, w *transa
 
 // verifyHeaderWitness is a block-specific implementation of VerifyWitnesses logic.
 func (bc *Blockchain) verifyHeaderWitness(currHeader, prevHeader *block.Header) error {
-	validators, err := bc.GetValidators(currHeader.Index)
-	if err != nil {
-		panic(err)
+	var consensus common.Address
+	if prevHeader == nil && currHeader.PrevHash == (common.Hash{}) {
+		consensus = currHeader.Witness.Address()
+	} else {
+		consensus = prevHeader.NextConsensus
 	}
-	consensus, err := getConsensusAddress(validators)
-	if err != nil {
-		return err
-	}
-	if consensus != currHeader.Witness.Address() {
-		return errors.New("invalid consensus")
-	}
-	currHeader.Witness.VerifyHashable(bc.config.ChainID, currHeader)
-	return nil
+	return bc.VerifyWitness(consensus, currHeader, &currHeader.Witness)
 }
 
 // UtilityTokenHash returns the utility token (GAS) native contract hash.

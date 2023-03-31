@@ -1,6 +1,7 @@
 package transaction
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"math/big"
@@ -10,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/io"
-	"golang.org/x/crypto/sha3"
 )
 
 // ErrInvalidWitnessNum returns when the number of witnesses does not match signers.
@@ -164,7 +164,7 @@ func (t *NeoTx) EncodeHashableFields() ([]byte, error) {
 
 // createHash creates the hash of the transaction.
 func (t *NeoTx) createHash() error {
-	shaHash := sha3.NewLegacyKeccak256()
+	shaHash := sha256.New()
 	bw := io.NewBinWriterFromIO(shaHash)
 	t.encodeHashableFields(bw)
 	if bw.Err != nil {

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/native"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
@@ -13,13 +14,18 @@ import (
 )
 
 // createGenesisBlock creates a genesis block based on the given configuration.
-func createGenesisBlock() (*block.Block, error) {
+func createGenesisBlock(cfg *config.ProtocolConfiguration) (*block.Block, error) {
+	nextConsensus, err := getConsensusAddress(cfg.StandbyValidators)
+	if err != nil {
+		return nil, err
+	}
 	base := block.Header{
-		Version:   0,
-		PrevHash:  common.Hash{},
-		Timestamp: uint64(time.Date(2016, 7, 15, 15, 8, 21, 0, time.UTC).Unix()) * 1000, // Milliseconds.
-		Nonce:     2083236893,
-		Index:     0,
+		Version:       0,
+		PrevHash:      common.Hash{},
+		Timestamp:     uint64(time.Date(2016, 7, 15, 15, 8, 21, 0, time.UTC).Unix()) * 1000, // Milliseconds.
+		Nonce:         2083236893,
+		Index:         0,
+		NextConsensus: nextConsensus,
 		Witness: transaction.Witness{
 			VerificationScript: []byte{},
 			InvocationScript:   []byte{},

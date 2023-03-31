@@ -36,14 +36,14 @@ type Witness struct {
 
 // DecodeBinary implements Serializable interface.
 func (w *Witness) DecodeBinary(br *io.BinReader) {
-	w.VerificationScript = br.ReadVarBytes(MaxVerificationScript)
 	w.InvocationScript = br.ReadVarBytes(MaxInvocationScript)
+	w.VerificationScript = br.ReadVarBytes(MaxVerificationScript)
 }
 
 // EncodeBinary implements Serializable interface.
 func (w *Witness) EncodeBinary(bw *io.BinWriter) {
-	bw.WriteVarBytes(w.VerificationScript)
 	bw.WriteVarBytes(w.InvocationScript)
+	bw.WriteVarBytes(w.VerificationScript)
 }
 
 // ScriptHash returns the hash of the VerificationScript.

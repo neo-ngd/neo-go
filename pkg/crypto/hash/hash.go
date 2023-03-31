@@ -1,6 +1,7 @@
 package hash
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
 	"hash"
 
@@ -28,6 +29,28 @@ func getSignedData(chainId uint64, hh Hashable) []byte {
 
 // NetSha256 calculates network-specific hash of Hashable item that can then
 // be signed/verified.
+func NetSha256(net uint64, hh Hashable) common.Hash {
+	return Sha256(getSignedData(net, hh))
+}
+
+// Sha256 hashes the incoming byte slice
+// using the sha256 algorithm.
+func Sha256(data []byte) common.Hash {
+	hash := sha256.Sum256(data)
+	return hash
+}
+
+// DoubleSha256 performs sha256 twice on the given data.
+func DoubleSha256(data []byte) common.Hash {
+	var hash common.Hash
+
+	h1 := Sha256(data)
+	hash = Sha256(h1.Bytes())
+	return hash
+}
+
+// NetSha256 calculates network-specific hash of Hashable item that can then
+// be signed/verified.
 func NetKeccak256(chainId uint64, hh Hashable) common.Hash {
 	return Keccak256(getSignedData(chainId, hh))
 }
@@ -44,20 +67,19 @@ func DoubleKeccak256(data []byte) common.Hash {
 // RipeMD160 performs the RIPEMD160 hash algorithm
 // on the given data.
 func RipeMD160(data []byte) common.Address {
-	var hash common.Address
+	b := make([]byte, 20)
 	hasher := ripemd160.New()
 	_, _ = hasher.Write(data)
 
-	hasher.Sum(hash[:0])
-	return hash
+	hasher.Sum(b[:0])
+	return common.BytesToAddress(b)
 }
 
 // Hash160 performs sha256 and then ripemd160
 // on the given data.
 func Hash160(data []byte) common.Address {
-	h1 := Keccak256(data)
+	h1 := Sha256(data)
 	h2 := RipeMD160(h1.Bytes())
-
 	return h2
 }
 

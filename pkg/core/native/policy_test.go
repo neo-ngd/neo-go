@@ -9,16 +9,17 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
 	"github.com/neo-ngd/neo-go/pkg/core/storage"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSetGasPrice(t *testing.T) {
+	pubs, _ := keys.NewPublicKeysFromStrings([]string{
+		"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+	})
 	dao := dao.NewSimple(storage.NewMemoryStore())
 	des := NewDesignate(config.ProtocolConfiguration{
-		StandbyCommittee: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
-		ValidatorsCount: 1,
+		StandbyValidators: pubs,
 	})
 	p := NewPolicy(&Contracts{
 		Designate: des,
@@ -31,7 +32,7 @@ func TestSetGasPrice(t *testing.T) {
 	assert.NoError(t, err)
 	err = p.ContractCall_initialize(ic)
 	assert.NoError(t, err)
-	ic.S, _ = des.GetCommitteeAddress(dao, 1)
+	ic.S, _ = des.GetConsensusAddress(dao, 1)
 	fn, ok := p.Abi.Methods["setGasPrice"]
 	assert.True(t, ok)
 	input := append(fn.ID, []byte{0}...)
@@ -48,12 +49,12 @@ func TestSetGasPrice(t *testing.T) {
 }
 
 func TestBlockAccount(t *testing.T) {
+	pubs, _ := keys.NewPublicKeysFromStrings([]string{
+		"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+	})
 	dao := dao.NewSimple(storage.NewMemoryStore())
 	des := NewDesignate(config.ProtocolConfiguration{
-		StandbyCommittee: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
-		ValidatorsCount: 1,
+		StandbyValidators: pubs,
 	})
 	p := NewPolicy(&Contracts{
 		Designate: des,
@@ -66,7 +67,7 @@ func TestBlockAccount(t *testing.T) {
 	assert.NoError(t, err)
 	err = p.ContractCall_initialize(ic)
 	assert.NoError(t, err)
-	ic.S, _ = des.GetCommitteeAddress(dao, 1)
+	ic.S, _ = des.GetConsensusAddress(dao, 1)
 	fn, ok := p.Abi.Methods["blockAccount"]
 	assert.True(t, ok)
 	input := append(fn.ID, []byte{0}...)

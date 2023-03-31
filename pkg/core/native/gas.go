@@ -66,7 +66,7 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 	if ic.PersistingBlock() == nil || ic.PersistingBlock().Index != 0 {
 		return ErrInitialize
 	}
-	validators := g.cs.Designate.StandbyCommittee[:g.cs.Designate.ValidatorsCount]
+	validators := g.cs.Designate.StandbyValidators
 	var addr common.Address
 	if validators.Len() == 1 {
 		addr = validators[0].Address()
@@ -88,6 +88,14 @@ func (g *GAS) ContractCall_initialize(ic InteropContext) error {
 
 func (g *GAS) OnPersist(d *dao.Simple, block *block.Block) error {
 	return nil
+}
+
+func (g *GAS) Mint(d *dao.Simple, address common.Address, amount *big.Int) error {
+	return g.addTokens(d, address, amount)
+}
+
+func (g *GAS) Burn(d *dao.Simple, address common.Address, amount *big.Int) error {
+	return g.addTokens(d, address, big.NewInt(0).Neg(amount))
 }
 
 func (g *GAS) increaseBalance(gs *GasState, amount *big.Int) error {

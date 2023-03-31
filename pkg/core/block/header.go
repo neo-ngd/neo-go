@@ -58,12 +58,18 @@ func (b *Header) Hash() common.Hash {
 // DecodeBinary implements Serializable interface.
 func (b *Header) DecodeBinary(br *io.BinReader) {
 	b.decodeHashableFields(br)
+	witnessCount := br.ReadVarUint()
+	if br.Err == nil && witnessCount != 1 {
+		br.Err = errors.New("wrong witness count")
+		return
+	}
 	b.Witness.DecodeBinary(br)
 }
 
 // EncodeBinary implements Serializable interface.
 func (b *Header) EncodeBinary(bw *io.BinWriter) {
 	b.encodeHashableFields(bw)
+	bw.WriteVarUint(1)
 	b.Witness.EncodeBinary(bw)
 }
 
@@ -78,7 +84,7 @@ func (b *Header) createHash() {
 	// No error can occur while encoding hashable fields.
 	b.encodeHashableFields(buf.BinWriter)
 
-	b.hash = hash.Keccak256(buf.Bytes())
+	b.hash = hash.Sha256(buf.Bytes())
 }
 
 // encodeHashableFields will only encode the fields used for hashing.
@@ -90,8 +96,9 @@ func (b *Header) encodeHashableFields(bw *io.BinWriter) {
 	bw.WriteU64LE(b.Timestamp)
 	bw.WriteU64LE(b.Nonce)
 	bw.WriteU32LE(b.Index)
-	bw.WriteBytes(b.NextConsensus[:])
 	bw.WriteB(b.PrimaryIndex)
+	bw.WriteBytes(b.NextConsensus[:])
+
 }
 
 // decodeHashableFields decodes the fields used for hashing.
@@ -103,9 +110,8 @@ func (b *Header) decodeHashableFields(br *io.BinReader) {
 	b.Timestamp = br.ReadU64LE()
 	b.Nonce = br.ReadU64LE()
 	b.Index = br.ReadU32LE()
-	br.ReadBytes(b.NextConsensus[:])
 	b.PrimaryIndex = br.ReadB()
-
+	br.ReadBytes(b.NextConsensus[:])
 	// Make the hash of the block here so we dont need to do this
 	// again.
 	if br.Err == nil {

@@ -8,7 +8,7 @@ import (
 
 const testConfigPath = "./testdata/protocol.test.yml"
 
-func TestUnexpectedNativeUpdateHistoryContract(t *testing.T) {
+func TestLoadConfig(t *testing.T) {
 	_, err := LoadFile(testConfigPath)
-	require.Error(t, err)
+	require.NoError(t, err)
 }

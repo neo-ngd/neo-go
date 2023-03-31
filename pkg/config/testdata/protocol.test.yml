@@ -1,4 +1,63 @@
 ProtocolConfiguration:
-  NativeActivations:
-    ContractManagement: [0]
-    UnexpectedContractName: [0]
+  ChainID: 253
+  MaxTraceableBlocks: 200000
+  InitialGASSupply: 100000000
+  KeepOnlyLatestState: false
+  MaxBlockSize: 262144
+  MaxBlockGas: 900000000000
+  MaxTransactionsPerBlock: 512
+  SecondsPerBlock: 15
+  MemPoolSize: 50000
+  StandbyValidators:
+    - 02a958dcbdda5fe1176fb6c76635f37ddccc50dd138496708007821db8c80f3935
+  SeedList:
+    - 127.0.0.1:20333
+  VerifyBlocks: true
+  VerifyTransactions: false
+  MainStandbyStateValidatorsScriptHash: ""
+  BridgeContractId: 1
+
+ApplicationConfiguration:
+  # LogPath could be set up in case you need stdout logs to some proper file.
+  DBConfiguration:
+    Type: "leveldb" #other options: 'inmemory','boltdb'
+    # DB type options. Uncomment those you need in case you want to switch DB type.
+    LevelDBOptions:
+      DataDirectoryPath: "./chains/privnet"
+  #    BoltDBOptions:
+  #      FilePath: "./chains/privnet.bolt"
+  #  Uncomment in order to set up custom address for node.
+  #  Address: 127.0.0.1
+  NodePort: 20333
+  Relay: true
+  DialTimeout: 3
+  ProtoTickInterval: 2
+  PingInterval: 30
+  PingTimeout: 90
+  MaxPeers: 10
+  AttemptConnPeers: 5
+  MinPeers: 0
+  UnlockWallet:
+    Path: "/wallet.json"
+    Password: "pass"
+  StateRoot:
+    Enabled: false
+    UnlockWallet:
+      Path: ""
+      Password: ""
+  RPC:
+    Enabled: true
+    MaxGasInvoke: 15
+    EnableCORSWorkaround: false
+    Port: 20332
+    TLSConfig:
+      Enabled: false
+      Port: 20301
+      CertFile: serv.crt
+      KeyFile: serv.key
+  Prometheus:
+    Enabled: true
+    Port: 2112
+  Pprof:
+    Enabled: false
+    Port: 2113

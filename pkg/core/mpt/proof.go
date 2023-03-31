@@ -68,7 +68,7 @@ func VerifyProof(rh common.Hash, key []byte, proofs [][]byte) ([]byte, bool) {
 	path := toNibbles(key)
 	tr := NewTrie(NewHashNode(rh), ModeAll, storage.NewMemCachedStore(storage.NewMemoryStore()))
 	for i := range proofs {
-		h := hash.DoubleKeccak256(proofs[i])
+		h := hash.DoubleSha256(proofs[i])
 		tr.Store.Put(makeStorageKey(h), proofs[i])
 	}
 	_, leaf, _, err := tr.getWithPath(tr.root, path, true)

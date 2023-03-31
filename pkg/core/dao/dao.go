@@ -85,14 +85,6 @@ func (dao *Simple) GetAndDecode(entity io.Serializable, key []byte) error {
 	return reader.Err
 }
 
-// -- start NEP-17 transfer info.
-
-// -- end NEP-17 transfer info.
-
-// -- start transfer log.
-
-// -- end transfer log.
-
 // -- start block
 
 func (dao *Simple) makeBlockKey(hash common.Hash) []byte {
@@ -307,7 +299,7 @@ func (dao *Simple) SeekAsync(ctx context.Context, hash common.Address, rng stora
 
 // makeStorageItemKey returns a key used to store StorageItem in the DB.
 func (dao *Simple) makeStorageItemKey(hash common.Address, key []byte) []byte {
-	// 1 for prefix + 4 for Uint32 + len(key) for key
+	// 1 for prefix + 20 for address + len(key) for key
 	buf := dao.getKeyBuf(21 + len(key))
 	buf[0] = byte(dao.Version.StoragePrefix)
 	copy(buf[1:], hash.Bytes())

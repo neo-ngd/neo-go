@@ -9,8 +9,6 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/vm"
 )
 
-
-
 type EVM struct {
 	*vm.EVM
 	ChainConfig *params.ChainConfig

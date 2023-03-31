@@ -69,6 +69,10 @@ func NewContext(block *block.Block, tx *transaction.Transaction, sdb *statedb.St
 				nativeContract: chain.Contracts().Management,
 				ic:             ctx,
 			},
+			native.BridgeAddress: nativeWrapper{
+				nativeContract: chain.Contracts().Bridge,
+				ic:             ctx,
+			},
 		})
 	return ctx, nil
 }
@@ -130,4 +134,8 @@ func (c Context) Coinbase() common.Address {
 
 func (c Context) Address() common.Address {
 	return c.Tx.From()
+}
+
+func (c Context) Container() *transaction.Transaction {
+	return c.Tx
 }

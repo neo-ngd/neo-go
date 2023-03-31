@@ -132,14 +132,12 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"calculategas":         (*Server).calculateGas,
 	"findstates":           (*Server).findStates,
 	"getbestblockhash":     (*Server).getBestBlockHash,
-	"getblock":             (*Server).getBlock,
 	"getblockcount":        (*Server).getBlockCount,
 	"getblockhash":         (*Server).getBlockHash,
 	"getblockheader":       (*Server).getBlockHeader,
 	"getblockheadercount":  (*Server).getBlockHeaderCount,
 	"getblocksysfee":       (*Server).getBlockGas,
-	"getcommittee":         (*Server).getCommittee,
-	"getcommitteeaddress":  (*Server).getCommitteeAddress,
+	"getconsensusaddress":  (*Server).getConsensusAddress,
 	"getconnectioncount":   (*Server).getConnectionCount,
 	"getcontractstate":     (*Server).getContractState,
 	"getfeeperbyte":        (*Server).getFeePerByte,
@@ -154,6 +152,7 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"getstorage":           (*Server).getStorage,
 	"gettransactionheight": (*Server).getTransactionHeight,
 	"getvalidators":        (*Server).getValidators,
+	"getnextvalidators":    (*Server).getNextValidators,
 	"sendrawtransaction":   (*Server).sendrawtransaction,
 	"validateaddress":      (*Server).validateAddress,
 	"verifyproof":          (*Server).verifyProof,
@@ -1214,26 +1213,6 @@ func (s *Server) blockHashFromParam(param *request.Param) (common.Hash, *respons
 	return hash, nil
 }
 
-func (s *Server) getBlock(reqParams request.Params) (interface{}, *response.Error) {
-	param := reqParams.Value(0)
-	hash, respErr := s.blockHashFromParam(param)
-	if respErr != nil {
-		return nil, respErr
-	}
-
-	block, err := s.chain.GetBlock(hash, true)
-	if err != nil {
-		return nil, response.NewInternalServerError(fmt.Sprintf("Problem locating block with hash: %s", hash), err)
-	}
-
-	if v, _ := reqParams.Value(1).GetBoolean(); v {
-		return result.NewBlock(block, s.chain), nil
-	}
-	writer := io.NewBufBinWriter()
-	block.EncodeBinary(writer.BinWriter)
-	return writer.Bytes(), nil
-}
-
 func (s *Server) getBlockHash(reqParams request.Params) (interface{}, *response.Error) {
 	num, err := s.blockHeightFromParam(reqParams.Value(0))
 	if err != nil {
@@ -1739,9 +1718,15 @@ func (s *Server) getBlockHeader(reqParams request.Params) (interface{}, *respons
 	param := reqParams.Value(0)
 	hash, respErr := s.blockHashFromParam(param)
 	if respErr != nil {
-		return nil, respErr
+		index, err := s.blockHeightFromParam(param)
+		if err != nil {
+			return nil, response.ErrInvalidParams
+		}
+		hash = s.chain.GetHeaderHash(index)
+		if hash == (common.Hash{}) {
+			return nil, response.NewRPCError("unknown block", "", nil)
+		}
 	}
-
 	verbose, _ := reqParams.Value(1).GetBoolean()
 	h, err := s.chain.GetHeader(hash)
 	if err != nil {
@@ -1760,8 +1745,7 @@ func (s *Server) getBlockHeader(reqParams request.Params) (interface{}, *respons
 	return buf.Bytes(), nil
 }
 
-// getNextBlockValidators returns validators for the next block with voting status.
-func (s *Server) getValidators(_ request.Params) (interface{}, *response.Error) {
+func (s *Server) getNextValidators(_ request.Params) (interface{}, *response.Error) {
 	validators, err := s.chain.GetCurrentValidators()
 	if err != nil {
 		return nil, response.NewInternalServerError("Failed to get validators", err)
@@ -1769,17 +1753,24 @@ func (s *Server) getValidators(_ request.Params) (interface{}, *response.Error) 
 	return validators, nil
 }
 
-// getCommittee returns the current list of neo-go-evm committee members.
-func (s *Server) getCommittee(_ request.Params) (interface{}, *response.Error) {
-	keys, err := s.chain.GetCommittee()
-	if err != nil {
-		return nil, response.NewInternalServerError("can't get committee members", err)
+func (s *Server) getValidators(params request.Params) (interface{}, *response.Error) {
+	p := params.Value(0)
+	if p == nil {
+		return nil, response.ErrInvalidParams
 	}
-	return keys, nil
+	index, err := p.GetIntStrict()
+	if err != nil {
+		return nil, response.ErrInvalidParams
+	}
+	validators, err := s.chain.GetValidators(uint32(index))
+	if err != nil {
+		return nil, response.NewInternalServerError("Failed to get validators", err)
+	}
+	return validators, nil
 }
 
-func (s *Server) getCommitteeAddress(_ request.Params) (interface{}, *response.Error) {
-	addr, err := s.chain.GetCommitteeAddress()
+func (s *Server) getConsensusAddress(_ request.Params) (interface{}, *response.Error) {
+	addr, err := s.chain.GetConsensusAddress()
 	if err != nil {
 		return nil, response.NewInternalServerError("can't get committee members", err)
 	}
