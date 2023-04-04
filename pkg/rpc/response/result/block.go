@@ -6,12 +6,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
+	"github.com/neo-ngd/neo-go/pkg/core/state"
 	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
 type (
-	// LedgerAux is a set of methods needed to construct some outputs.
 	LedgerAux interface {
 		BlockHeight() uint32
 		GetHeaderHash(int) common.Hash
@@ -26,26 +27,33 @@ type (
 	// BlockMetadata is an additional metadata added to standard
 	// block.Block.
 	BlockMetadata struct {
-		Size          hexutil.Uint `json:"size"`
-		NextBlockHash *common.Hash `json:"nextblockhash,omitempty"`
-		Confirmations hexutil.Uint `json:"confirmations"`
+		Size            hexutil.Uint   `json:"size"`
+		Sha3Uncles      common.Hash    `json:"sha3Uncles"`
+		LogsBloom       types.Bloom    `json:"logsBloom"`
+		StateRoot       common.Hash    `json:"stateRoot"`
+		ReceiptsRoot    common.Hash    `json:"receiptsRoot"`
+		Difficulty      hexutil.Uint   `json:"difficulty"`
+		TotalDifficulty hexutil.Uint   `json:"totalDifficulty"`
+		ExtraData       hexutil.Bytes  `json:"extraData"`
+		GasLimit        hexutil.Big    `json:"gasLimit"`
+		GasUsed         hexutil.Uint64 `json:"gasUsed"`
+		Uncles          []common.Hash  `json:"uncles"`
+		BaseFeePerGas   hexutil.Uint64 `json:"baseFeePerGas"`
 	}
 )
 
 // NewBlock creates a new Block wrapper.
-func NewBlock(b *block.Block, chain LedgerAux) Block {
+func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, chain LedgerAux) Block {
 	res := Block{
 		Block: *b,
 		BlockMetadata: BlockMetadata{
-			Size:          hexutil.Uint(io.GetVarSize(b)),
-			Confirmations: hexutil.Uint(chain.BlockHeight() - b.Index + 1),
+			Size:      hexutil.Uint(io.GetVarSize(b)),
+			StateRoot: sr.Root,
+			GasUsed:   hexutil.Uint64(receipt.GasUsed),
 		},
 	}
 
-	hash := chain.GetHeaderHash(int(b.Index) + 1)
-	if hash != (common.Hash{}) {
-		res.NextBlockHash = &hash
-	}
+	_ = chain.GetHeaderHash(int(b.Index) + 1)
 
 	return res
 }

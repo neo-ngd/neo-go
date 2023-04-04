@@ -118,6 +118,7 @@ func (t EthTx) MarshalJSON() ([]byte, error) {
 	v, r, s := t.Transaction.RawSignatureValues()
 	tx := &ethTxJson{
 		Type:    hexutil.Uint(t.Type()),
+		Hash:    t.Hash(),
 		Nonce:   hexutil.Uint64(t.Nonce()),
 		Gas:     hexutil.Uint64(t.Gas()),
 		To:      t.To(),
@@ -196,6 +197,7 @@ func (t *EthTx) UnmarshalJSON(data []byte) error {
 	default:
 		return ErrUnsupportType
 	}
+	// compare hash
 	return nil
 }
 
@@ -220,6 +222,7 @@ func deriveSender(t *types.Transaction, chainId uint64) (common.Address, error) 
 
 type ethTxJson struct {
 	Type       hexutil.Uint      `json:"type"`
+	Hash       common.Hash       `json:"hash"`
 	Nonce      hexutil.Uint64    `json:"nonce"`
 	GasPrice   *hexutil.Big      `json:"gasPrice,omitempty"`
 	GasTipCap  *hexutil.Big      `json:"gasTipCap,omitempty"`

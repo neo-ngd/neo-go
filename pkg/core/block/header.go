@@ -1,6 +1,7 @@
 package block
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 
@@ -22,7 +23,7 @@ type Header struct {
 	// Root hash of a transaction list.
 	MerkleRoot common.Hash
 
-	// Timestamp is a millisecond-precision timestamp.
+	// Timestamp is a unix timestamp.
 	// The time stamp of each block must be later than previous block's time stamp.
 	// Generally the difference of two block's time stamp is about 15 seconds and imprecision is allowed.
 	// The height of the block must be exactly equal to the height of the previous block plus 1.
@@ -123,27 +124,29 @@ type baseJson struct {
 	Hash          common.Hash         `json:"hash"`
 	Version       hexutil.Uint        `json:"version"`
 	PrevHash      common.Hash         `json:"parentHash"`
-	MerkleRoot    common.Hash         `json:"transactionRoot"`
-	Timestamp     hexutil.Uint64      `json:"time"`
-	Nonce         hexutil.Uint64      `json:"nonce"`
+	MerkleRoot    common.Hash         `json:"transactionsRoot"`
+	Timestamp     hexutil.Uint64      `json:"timestamp"`
+	Nonce         hexutil.Bytes       `json:"nonce"`
 	Index         hexutil.Uint        `json:"number"`
 	NextConsensus common.Address      `json:"nextConsensus"`
-	PrimaryIndex  hexutil.Uint        `json:"primary"`
+	Miner         common.Address      `json:"miner"`
 	Witness       transaction.Witness `json:"witness"`
 }
 
 // MarshalJSON implements json.Marshaler interface.
 func (b Header) MarshalJSON() ([]byte, error) {
+	nonceb := make([]byte, 8)
+	binary.BigEndian.PutUint64(nonceb, b.Nonce)
 	aux := baseJson{
 		Hash:          b.Hash(),
 		Version:       hexutil.Uint(b.Version),
 		PrevHash:      b.PrevHash,
 		MerkleRoot:    b.MerkleRoot,
 		Timestamp:     hexutil.Uint64(b.Timestamp),
-		Nonce:         hexutil.Uint64(b.Nonce),
+		Nonce:         nonceb,
 		Index:         hexutil.Uint(b.Index),
 		NextConsensus: b.NextConsensus,
-		PrimaryIndex:  hexutil.Uint(b.PrimaryIndex),
+		Miner:         common.BytesToAddress([]byte{b.PrimaryIndex}),
 		Witness:       b.Witness,
 	}
 	return json.Marshal(aux)
@@ -156,15 +159,14 @@ func (b *Header) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
-
-	b.Nonce = uint64(aux.Nonce)
+	b.Nonce = binary.BigEndian.Uint64(aux.Nonce)
 	b.Version = uint32(aux.Version)
 	b.PrevHash = aux.PrevHash
 	b.MerkleRoot = aux.MerkleRoot
 	b.Timestamp = uint64(aux.Timestamp)
 	b.Index = uint32(aux.Index)
 	b.NextConsensus = aux.NextConsensus
-	b.PrimaryIndex = byte(aux.PrimaryIndex)
+	b.PrimaryIndex = byte(aux.Miner[common.AddressLength-1])
 	b.Witness = aux.Witness
 	if aux.Hash != (b.Hash()) {
 		return errors.New("json 'hash' doesn't match block hash")

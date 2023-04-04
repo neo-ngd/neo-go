@@ -95,33 +95,49 @@ func (dao *Simple) makeBlockKey(hash common.Hash) []byte {
 }
 
 // GetBlock returns Block by the given hash if it exists in the store.
-func (dao *Simple) GetBlock(hash common.Hash) (*block.Block, error) {
+func (dao *Simple) GetBlock(hash common.Hash) (*block.Block, *types.Receipt, error) {
 	return dao.getBlock(dao.makeBlockKey(hash))
 }
 
-func (dao *Simple) getBlock(key []byte) (*block.Block, error) {
+func (dao *Simple) getBlock(key []byte) (*block.Block, *types.Receipt, error) {
 	b, err := dao.Store.Get(key)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	r := io.NewBinReaderFromBuf(b)
+	bb := r.ReadVarBytes()
+	rb := r.ReadVarBytes()
+	r = io.NewBinReaderFromBuf(bb)
 	block, err := block.NewTrimmedFromReader(r)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return block, nil
+	receipt := new(types.Receipt)
+	err = json.Unmarshal(rb, receipt)
+	if err != nil {
+		return nil, nil, err
+	}
+	return block, receipt, nil
 }
 
-func (dao *Simple) StoreAsBlock(block *block.Block) error {
-	var (
-		key = dao.makeBlockKey(block.Hash())
-		buf = dao.getDataBuf()
-	)
+func (dao *Simple) StoreAsBlock(block *block.Block, receipt *types.Receipt) error {
+	key := dao.makeBlockKey(block.Hash())
+
+	buf := io.NewBufBinWriter()
 	block.EncodeTrimmed(buf.BinWriter)
 	if buf.Err != nil {
 		return buf.Err
 	}
-	dao.Store.Put(key, buf.Bytes())
+	bb := buf.Bytes()
+	rb, err := json.Marshal(receipt)
+	if err != nil {
+		return err
+	}
+	buf = io.NewBufBinWriter()
+	buf.WriteVarBytes(bb)
+	buf.WriteVarBytes(rb)
+	b := buf.Bytes()
+	dao.Store.Put(key, b)
 	return nil
 }
 
@@ -129,11 +145,7 @@ func (dao *Simple) StoreAsBlock(block *block.Block) error {
 // using private MemCached instance here.
 func (dao *Simple) DeleteBlock(h common.Hash) error {
 	key := dao.makeBlockKey(h)
-	b, err := dao.getBlock(key)
-	if err != nil {
-		return err
-	}
-	err = dao.storeHeader(key, &b.Header)
+	b, _, err := dao.getBlock(key)
 	if err != nil {
 		return err
 	}
@@ -408,6 +420,7 @@ func (dao *Simple) GetStateSyncPoint() (uint32, error) {
 // GetHeaderHashes returns a sorted list of header hashes retrieved from
 // the given underlying store.
 func (dao *Simple) GetHeaderHashes() ([]common.Hash, error) {
+	fmt.Println("read hashes")
 	var hashes = make([]common.Hash, 0)
 
 	var seekErr error
@@ -422,7 +435,9 @@ func (dao *Simple) GetHeaderHashes() ([]common.Hash, error) {
 		hashes = append(hashes, newHashes...)
 		return true
 	})
-
+	for _, hash := range hashes {
+		fmt.Println(hash)
+	}
 	return hashes, seekErr
 }
 
@@ -491,22 +506,6 @@ func (dao *Simple) HasTransaction(hash common.Hash) error {
 		return nil
 	}
 	return ErrAlreadyExists
-}
-
-// StoreHeader saves block header into the store.
-func (dao *Simple) StoreHeader(h *block.Header) error {
-	return dao.storeHeader(dao.makeBlockKey(h.Hash()), h)
-}
-
-func (dao *Simple) storeHeader(key []byte, h *block.Header) error {
-	buf := dao.getDataBuf()
-	h.EncodeBinary(buf.BinWriter)
-	buf.BinWriter.WriteB(0)
-	if buf.Err != nil {
-		return buf.Err
-	}
-	dao.Store.Put(key, buf.Bytes())
-	return nil
 }
 
 // StoreAsCurrentBlock stores a hash of the given block with prefix

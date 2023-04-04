@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/io"
@@ -12,7 +13,7 @@ import (
 // DumperRestorer in the interface to get/add blocks from/to.
 type DumperRestorer interface {
 	AddBlock(block *block.Block) error
-	GetBlock(hash common.Hash, full bool) (*block.Block, error)
+	GetBlock(hash common.Hash, full bool) (*block.Block, *types.Receipt, error)
 	GetConfig() config.ProtocolConfiguration
 	GetHeaderHash(int) common.Hash
 }
@@ -22,7 +23,7 @@ type DumperRestorer interface {
 func Dump(bc DumperRestorer, w *io.BinWriter, start, count uint32) error {
 	for i := start; i < start+count; i++ {
 		bh := bc.GetHeaderHash(int(i))
-		b, err := bc.GetBlock(bh, true)
+		b, _, err := bc.GetBlock(bh, true)
 		if err != nil {
 			return err
 		}

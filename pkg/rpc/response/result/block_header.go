@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/io"
@@ -24,14 +23,8 @@ func NewHeader(h *block.Header, chain LedgerAux) Header {
 	res := Header{
 		Header: *h,
 		BlockMetadata: BlockMetadata{
-			Size:          hexutil.Uint(io.GetVarSize(h)),
-			Confirmations: hexutil.Uint(chain.BlockHeight() - h.Index + 1),
+			Size: hexutil.Uint(io.GetVarSize(h)),
 		},
-	}
-
-	hash := chain.GetHeaderHash(int(h.Index) + 1)
-	if hash != (common.Hash{}) {
-		res.NextBlockHash = &hash
 	}
 	return res
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	coreb "github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/blockchainer"
@@ -29,8 +30,8 @@ const cacheMaxCapacity = 100
 
 const defaultTimePerBlock = 15 * time.Second
 
-// Number of nanoseconds in millisecond.
-const nsInMs = 1000000
+// Number of nanoseconds in second.
+const nsInMs = 1000000000
 
 // Category is message category for extensible payloads.
 const Category = "dBFT"
@@ -49,7 +50,7 @@ type Ledger interface {
 	UnsubscribeFromBlocks(ch chan<- *coreb.Block)
 	BlockHeight() uint32
 	CurrentBlockHash() common.Hash
-	GetBlock(hash common.Hash, full bool) (*coreb.Block, error)
+	GetBlock(hash common.Hash, full bool) (*coreb.Block, *types.Receipt, error)
 	GetHeaderHash(int) common.Hash
 	mempool.Feer
 }
@@ -508,7 +509,7 @@ func (s *service) processBlock(b block.Block) {
 	if err := s.Chain.AddBlock(bb); err != nil {
 		// The block might already be added via the regular network
 		// interaction.
-		if _, errget := s.Chain.GetBlock(bb.Hash(), false); errget != nil {
+		if _, _, errget := s.Chain.GetBlock(bb.Hash(), false); errget != nil {
 			s.log.Warn("error on add block", zap.Error(err))
 		}
 	}
@@ -546,7 +547,7 @@ func (s *service) getBlockWitness(b *coreb.Block) transaction.Witness {
 }
 
 func (s *service) getBlock(h common.Hash) block.Block {
-	b, err := s.Chain.GetBlock(h, false)
+	b, _, err := s.Chain.GetBlock(h, false)
 	if err != nil {
 		return nil
 	}

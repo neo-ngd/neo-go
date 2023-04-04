@@ -22,7 +22,7 @@ func createGenesisBlock(cfg *config.ProtocolConfiguration) (*block.Block, error)
 	base := block.Header{
 		Version:       0,
 		PrevHash:      common.Hash{},
-		Timestamp:     uint64(time.Date(2016, 7, 15, 15, 8, 21, 0, time.UTC).Unix()) * 1000, // Milliseconds.
+		Timestamp:     uint64(time.Date(2016, 7, 15, 15, 8, 21, 0, time.UTC).Unix()), // Milliseconds.
 		Nonce:         2083236893,
 		Index:         0,
 		NextConsensus: nextConsensus,

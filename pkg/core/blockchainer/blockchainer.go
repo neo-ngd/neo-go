@@ -29,7 +29,7 @@ type Blockchainer interface {
 	Contracts() *native.Contracts
 	IsTxStillRelevant(t *transaction.Transaction, txpool *mempool.Pool, isPartialTx bool) bool
 	HeaderHeight() uint32
-	GetBlock(hash common.Hash, full bool) (*block.Block, error)
+	GetBlock(hash common.Hash, full bool) (*block.Block, *types.Receipt, error)
 	GetConsensusAddress() (common.Address, error)
 	GetContractState(hash common.Address) *state.Contract
 	IsBlocked(common.Address) bool

@@ -111,7 +111,8 @@ type Blockchain struct {
 	blockHeight uint32
 
 	// Current top Block wrapped in an atomic.Value for safe access.
-	topBlock atomic.Value
+	topBlock    atomic.Value
+	topBlockAer atomic.Value
 
 	// Current persisted block count.
 	persistedHeight uint32
@@ -280,7 +281,6 @@ func (bc *Blockchain) init() error {
 	if bc.storedHeaderCount == 0 && currHeaderHeight == 0 {
 		bc.headerHashes = append(bc.headerHashes, currHeaderHash)
 	}
-
 	// There is a high chance that the Node is stopped before the next
 	// batch of 2000 headers was stored. Via the currentHeaders stored we can sync
 	// that with stored blocks.
@@ -586,10 +586,6 @@ func (bc *Blockchain) addHeaders(verify bool, headers ...*block.Header) error {
 		if int(h.Index) != len(bc.headerHashes) {
 			continue
 		}
-		err = batch.StoreHeader(h)
-		if err != nil {
-			return err
-		}
 		bc.headerHashes = append(bc.headerHashes, h.Hash())
 		lastHeader = h
 	}
@@ -635,9 +631,10 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 	)
 	go func() {
 		var (
-			kvcache = aerCache
-			err     error
-			txCnt   int
+			kvcache  = aerCache
+			err      error
+			txCnt    int
+			blockaer *types.Receipt
 		)
 		kvcache.StoreAsCurrentBlock(block)
 		if bc.config.RemoveUntraceableBlocks {
@@ -656,6 +653,10 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			}
 		}
 		for aer := range aerchan {
+			if txCnt == len(block.Transactions) {
+				blockaer = aer
+				break
+			}
 			err = kvcache.StoreAsTransaction(block.Transactions[txCnt], block.Index, aer)
 			txCnt++
 			if err != nil {
@@ -667,7 +668,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 			aerdone <- err
 			return
 		}
-		if err := kvcache.StoreAsBlock(block); err != nil {
+		if err := kvcache.StoreAsBlock(block, blockaer); err != nil {
 			aerdone <- err
 			return
 		}
@@ -759,6 +760,17 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 	if err != nil {
 		return fmt.Errorf("postPersist failed: %w", err)
 	}
+	aer := &types.Receipt{
+		BlockHash:         block.Hash(),
+		BlockNumber:       big.NewInt(int64(block.Index)),
+		TxHash:            block.Hash(),
+		TransactionIndex:  0,
+		GasUsed:           cumulativeGas,
+		ContractAddress:   common.Address{},
+		CumulativeGasUsed: cumulativeGas,
+		Logs:              []*types.Log{},
+	}
+	aerchan <- aer
 	close(aerchan)
 	b := mpt.MapToMPTBatch(cache.Store.GetStorageChanges())
 	mpt, sr, err := bc.stateRoot.AddMPTBatch(block.Index, b, cache.Store)
@@ -804,6 +816,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 	mpt.Store = bc.dao.Store
 	bc.stateRoot.UpdateCurrentLocal(mpt, sr)
 	bc.topBlock.Store(block)
+	bc.topBlockAer.Store(aer)
 	atomic.StoreUint32(&bc.blockHeight, block.Index)
 	bc.memPool.RemoveStale(func(tx *transaction.Transaction) bool { return bc.IsTxStillRelevant(tx, txpool, false) }, bc)
 	for _, f := range bc.postBlock {
@@ -962,32 +975,32 @@ func (bc *Blockchain) GetStorageItems(hash common.Address) ([]state.StorageItemW
 }
 
 // GetBlock returns a Block by the given hash.
-func (bc *Blockchain) GetBlock(hash common.Hash, full bool) (*block.Block, error) {
+func (bc *Blockchain) GetBlock(hash common.Hash, full bool) (*block.Block, *types.Receipt, error) {
 	topBlock := bc.topBlock.Load()
 	if topBlock != nil {
 		tb := topBlock.(*block.Block)
 		if tb.Hash() == hash {
-			return tb, nil
+			return tb, bc.topBlockAer.Load().(*types.Receipt), nil
 		}
 	}
 
-	block, err := bc.dao.GetBlock(hash)
+	block, receipt, err := bc.dao.GetBlock(hash)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if block.MerkleRoot != (common.Hash{}) && len(block.Transactions) == 0 {
-		return nil, errors.New("only header is found")
+		return nil, nil, errors.New("only header is found")
 	}
 	if full {
 		for _, tx := range block.Transactions {
 			stx, _, err := bc.dao.GetTransaction(tx.Hash())
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			*tx = *stx
 		}
 	}
-	return block, nil
+	return block, receipt, nil
 }
 
 // GetHeader returns data block header identified with the given hash value.
@@ -999,7 +1012,7 @@ func (bc *Blockchain) GetHeader(hash common.Hash) (*block.Header, error) {
 			return &tb.Header, nil
 		}
 	}
-	block, err := bc.dao.GetBlock(hash)
+	block, _, err := bc.dao.GetBlock(hash)
 	if err != nil {
 		return nil, err
 	}
@@ -1494,7 +1507,7 @@ func (bc *Blockchain) GetLogs(filter *filters.LogFilter) ([]*types.Log, error) {
 	}
 	logs := []*types.Log{}
 	for _, hash := range blockhashes {
-		block, err := bc.GetBlock(hash, false)
+		block, _, err := bc.GetBlock(hash, false)
 		if err != nil {
 			return nil, err
 		}

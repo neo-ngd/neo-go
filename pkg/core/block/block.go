@@ -39,12 +39,12 @@ type Block struct {
 
 // auxBlockOut is used for JSON i/o.
 type auxBlockOut struct {
-	Transactions []*transaction.Transaction `json:"tx"`
+	Transactions []*transaction.Transaction `json:"transactions"`
 }
 
 // auxBlockIn is used for JSON i/o.
 type auxBlockIn struct {
-	Transactions []json.RawMessage `json:"tx"`
+	Transactions []json.RawMessage `json:"transactions"`
 }
 
 // ComputeMerkleRoot computes Merkle tree root hash based on actual block's data.
