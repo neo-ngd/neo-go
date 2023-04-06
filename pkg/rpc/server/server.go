@@ -127,19 +127,21 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"eth_getFilterChanges":                    (*Server).eth_getFilterChanges,
 	"eth_getFilterLogs":                       (*Server).eth_getFilterLogs,
 	"eth_getLogs":                             (*Server).eth_getLogs,
+	"eth_getUncleByBlockHashAndIndex":         (*Server).eth_getUncleByBlockHashAndIndex,
 	// -- end eth api
+	// -- start gether api
+	"txpool_content": (*Server).txpool_content,
+	// -- end gether api
 	"getversion":           (*Server).getVersion,
 	"calculategas":         (*Server).calculateGas,
 	"findstates":           (*Server).findStates,
 	"getbestblockhash":     (*Server).getBestBlockHash,
-	"getblock":             (*Server).getBlock,
 	"getblockcount":        (*Server).getBlockCount,
 	"getblockhash":         (*Server).getBlockHash,
 	"getblockheader":       (*Server).getBlockHeader,
 	"getblockheadercount":  (*Server).getBlockHeaderCount,
 	"getblocksysfee":       (*Server).getBlockGas,
-	"getcommittee":         (*Server).getCommittee,
-	"getcommitteeaddress":  (*Server).getCommitteeAddress,
+	"getconsensusaddress":  (*Server).getConsensusAddress,
 	"getconnectioncount":   (*Server).getConnectionCount,
 	"getcontractstate":     (*Server).getContractState,
 	"getfeeperbyte":        (*Server).getFeePerByte,
@@ -154,6 +156,7 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"getstorage":           (*Server).getStorage,
 	"gettransactionheight": (*Server).getTransactionHeight,
 	"getvalidators":        (*Server).getValidators,
+	"getnextvalidators":    (*Server).getNextValidators,
 	"sendrawtransaction":   (*Server).sendrawtransaction,
 	"validateaddress":      (*Server).validateAddress,
 	"verifyproof":          (*Server).verifyProof,
@@ -623,7 +626,7 @@ func (s *Server) eth_getBlockTransactionCountByHash(params request.Params) (inte
 	if err != nil {
 		return nil, response.NewInvalidParamsError(err.Error(), err)
 	}
-	b, err := s.chain.GetBlock(hash, false)
+	b, _, err := s.chain.GetBlock(hash, false)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil, nil
@@ -650,7 +653,7 @@ func (s *Server) eth_getBlockTransactionCountByNumber(params request.Params) (in
 	if hash == (common.Hash{}) {
 		return nil, nil
 	}
-	b, err := s.chain.GetBlock(hash, false)
+	b, _, err := s.chain.GetBlock(hash, false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Problem locating block with hash: %s", hash), err)
 	}
@@ -735,7 +738,7 @@ func (s *Server) eth_signTransaction(params request.Params) (interface{}, *respo
 		Sender:      txObj.From,
 	}
 	tx := transaction.NewTx(inner)
-	fakeBlock, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
+	fakeBlock, _, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
 	}
@@ -746,7 +749,7 @@ func (s *Server) eth_signTransaction(params request.Params) (interface{}, *respo
 		}
 	}
 	var left uint64
-	if inner.To == nil {
+	if inner.To() == nil {
 		_, _, left, err = ic.VM.Create(ic, inner.Data(), TestGas, inner.Value())
 	} else {
 		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
@@ -794,7 +797,7 @@ func (s *Server) eth_sendTransaction(params request.Params) (interface{}, *respo
 		Sender:      txObj.From,
 	}
 	tx := transaction.NewTx(inner)
-	fakeBlock, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
+	fakeBlock, _, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
 	}
@@ -805,7 +808,7 @@ func (s *Server) eth_sendTransaction(params request.Params) (interface{}, *respo
 		}
 	}
 	var left uint64
-	if inner.To == nil {
+	if inner.To() == nil {
 		_, _, left, err = ic.VM.Create(ic, tx.Data(), TestGas, tx.Value())
 	} else {
 		_, left, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
@@ -869,7 +872,7 @@ func (s *Server) eth_call(params request.Params) (interface{}, *response.Error) 
 		Sender:      txObj.From,
 	}
 	tx := transaction.NewTx(inner)
-	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
+	block, _, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
 	}
@@ -880,7 +883,7 @@ func (s *Server) eth_call(params request.Params) (interface{}, *response.Error) 
 		}
 	}
 	var ret []byte
-	if inner.To == nil {
+	if inner.To() == nil {
 		ret, _, _, err = ic.VM.Create(ic, tx.Data(), TestGas, tx.Value())
 	} else {
 		ret, _, err = ic.VM.Call(ic, *tx.To(), tx.Data(), TestGas, tx.Value())
@@ -931,7 +934,7 @@ func (s *Server) eth_estimateGas(reqParams request.Params) (interface{}, *respon
 		}
 		tx = transaction.NewTx(inner)
 	}
-	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
+	block, _, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
 	}
@@ -976,14 +979,18 @@ func (s *Server) eth_getBlockByHash(params request.Params) (interface{}, *respon
 		}
 		full = f
 	}
-	block, err := s.chain.GetBlock(hash, full)
+	block, receipt, err := s.chain.GetBlock(hash, full)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil, nil
 		}
 		return nil, response.NewInternalServerError(fmt.Sprintf("Problem locating block with hash: %s", hash), err)
 	}
-	return result.NewBlock(block, s.chain), nil
+	sr, err := s.chain.GetStateModule().GetStateRoot(block.Index)
+	if err != nil {
+		return nil, response.NewInternalServerError("can't get state root", err)
+	}
+	return result.NewBlock(block, receipt, sr), nil
 }
 
 func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *response.Error) {
@@ -1012,14 +1019,18 @@ func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *resp
 			return nil, response.NewInvalidParamsError(fmt.Sprintf("%s", err), err)
 		}
 	}
-	block, err := s.chain.GetBlock(hash, full)
+	block, receipt, err := s.chain.GetBlock(hash, full)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil, nil
 		}
 		return nil, response.NewInternalServerError(fmt.Sprintf("Problem locating block with hash: %s", hash), err)
 	}
-	return result.NewBlock(block, s.chain), nil
+	sr, err := s.chain.GetStateModule().GetStateRoot(block.Index)
+	if err != nil {
+		return nil, response.NewInternalServerError("can't get state root", err)
+	}
+	return result.NewBlock(block, receipt, sr), nil
 }
 
 func (s *Server) eth_getTransactionByHash(params request.Params) (interface{}, *response.Error) {
@@ -1059,7 +1070,7 @@ func (s *Server) eth_getTransactionByBlockHashAndIndex(params request.Params) (i
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
-	block, err := s.chain.GetBlock(blockHash, false)
+	block, _, err := s.chain.GetBlock(blockHash, false)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil, nil
@@ -1098,7 +1109,7 @@ func (s *Server) eth_getTransactionByBlockNumberAndIndex(params request.Params) 
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
-	block, err := s.chain.GetBlock(blockHash, true)
+	block, _, err := s.chain.GetBlock(blockHash, true)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil, nil
@@ -1177,7 +1188,20 @@ func (s *Server) eth_getLogs(params request.Params) (interface{}, *response.Erro
 	return logs, nil
 }
 
+func (s *Server) eth_getUncleByBlockHashAndIndex(_ request.Params) (interface{}, *response.Error) {
+	return nil, nil
+}
+
 // -- end eth api.
+
+// -- start gether api
+
+func (s *Server) txpool_content(_ request.Params) (interface{}, *response.Error) {
+	mempool := s.chain.GetMemPool()
+	return result.NewTxPool(mempool.GetVerifiedTransactions()), nil
+}
+
+// -- end gether api
 
 func (s *Server) getBestBlockHash(_ request.Params) (interface{}, *response.Error) {
 	return s.chain.CurrentBlockHash().String(), nil
@@ -1212,26 +1236,6 @@ func (s *Server) blockHashFromParam(param *request.Param) (common.Hash, *respons
 		hash = s.chain.GetHeaderHash(num)
 	}
 	return hash, nil
-}
-
-func (s *Server) getBlock(reqParams request.Params) (interface{}, *response.Error) {
-	param := reqParams.Value(0)
-	hash, respErr := s.blockHashFromParam(param)
-	if respErr != nil {
-		return nil, respErr
-	}
-
-	block, err := s.chain.GetBlock(hash, true)
-	if err != nil {
-		return nil, response.NewInternalServerError(fmt.Sprintf("Problem locating block with hash: %s", hash), err)
-	}
-
-	if v, _ := reqParams.Value(1).GetBoolean(); v {
-		return result.NewBlock(block, s.chain), nil
-	}
-	writer := io.NewBufBinWriter()
-	block.EncodeBinary(writer.BinWriter)
-	return writer.Bytes(), nil
 }
 
 func (s *Server) getBlockHash(reqParams request.Params) (interface{}, *response.Error) {
@@ -1329,7 +1333,7 @@ func (s *Server) calculateGas(reqParams request.Params) (interface{}, *response.
 	if err != nil {
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Could not calculate network fee: %s", err), err)
 	}
-	block, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
+	block, _, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Could not get current block: %s", err), err)
 	}
@@ -1721,7 +1725,7 @@ func (s *Server) getBlockGas(reqParams request.Params) (interface{}, *response.E
 	}
 
 	headerHash := s.chain.GetHeaderHash(num)
-	block, errBlock := s.chain.GetBlock(headerHash, true)
+	block, _, errBlock := s.chain.GetBlock(headerHash, true)
 	if errBlock != nil {
 		return 0, response.NewRPCError(errBlock.Error(), "", nil)
 	}
@@ -1739,9 +1743,15 @@ func (s *Server) getBlockHeader(reqParams request.Params) (interface{}, *respons
 	param := reqParams.Value(0)
 	hash, respErr := s.blockHashFromParam(param)
 	if respErr != nil {
-		return nil, respErr
+		index, err := s.blockHeightFromParam(param)
+		if err != nil {
+			return nil, response.ErrInvalidParams
+		}
+		hash = s.chain.GetHeaderHash(index)
+		if hash == (common.Hash{}) {
+			return nil, response.NewRPCError("unknown block", "", nil)
+		}
 	}
-
 	verbose, _ := reqParams.Value(1).GetBoolean()
 	h, err := s.chain.GetHeader(hash)
 	if err != nil {
@@ -1760,8 +1770,7 @@ func (s *Server) getBlockHeader(reqParams request.Params) (interface{}, *respons
 	return buf.Bytes(), nil
 }
 
-// getNextBlockValidators returns validators for the next block with voting status.
-func (s *Server) getValidators(_ request.Params) (interface{}, *response.Error) {
+func (s *Server) getNextValidators(_ request.Params) (interface{}, *response.Error) {
 	validators, err := s.chain.GetCurrentValidators()
 	if err != nil {
 		return nil, response.NewInternalServerError("Failed to get validators", err)
@@ -1769,17 +1778,24 @@ func (s *Server) getValidators(_ request.Params) (interface{}, *response.Error) 
 	return validators, nil
 }
 
-// getCommittee returns the current list of neo-go-evm committee members.
-func (s *Server) getCommittee(_ request.Params) (interface{}, *response.Error) {
-	keys, err := s.chain.GetCommittee()
-	if err != nil {
-		return nil, response.NewInternalServerError("can't get committee members", err)
+func (s *Server) getValidators(params request.Params) (interface{}, *response.Error) {
+	p := params.Value(0)
+	if p == nil {
+		return nil, response.ErrInvalidParams
 	}
-	return keys, nil
+	index, err := p.GetIntStrict()
+	if err != nil {
+		return nil, response.ErrInvalidParams
+	}
+	validators, err := s.chain.GetValidators(uint32(index))
+	if err != nil {
+		return nil, response.NewInternalServerError("Failed to get validators", err)
+	}
+	return validators, nil
 }
 
-func (s *Server) getCommitteeAddress(_ request.Params) (interface{}, *response.Error) {
-	addr, err := s.chain.GetCommitteeAddress()
+func (s *Server) getConsensusAddress(_ request.Params) (interface{}, *response.Error) {
+	addr, err := s.chain.GetConsensusAddress()
 	if err != nil {
 		return nil, response.NewInternalServerError("can't get committee members", err)
 	}

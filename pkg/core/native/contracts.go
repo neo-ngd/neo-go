@@ -3,6 +3,7 @@ package native
 import (
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strings"
 
@@ -18,7 +19,7 @@ import (
 const (
 	defaultNativeReadFee     = 200
 	defaultNativeWriteFee    = 5000
-	contractMethodNamePrefix = "ContractCall_"
+	contractMethodNamePrefix = "ContractCall"
 )
 
 var (
@@ -41,6 +42,7 @@ type Contracts struct {
 	Designate  *Designate
 	Management *Management
 	Policy     *Policy
+	Bridge     *Bridge
 	Contracts  []state.NativeContract
 }
 
@@ -58,6 +60,8 @@ func NewContracts(cfg config.ProtocolConfiguration) *Contracts {
 	cs.Contracts = append(cs.Contracts, cs.Designate.NativeContract)
 	cs.Policy = NewPolicy(cs)
 	cs.Contracts = append(cs.Contracts, cs.Policy.NativeContract)
+	cs.Bridge = NewBridge(cs, cfg)
+	cs.Contracts = append(cs.Contracts, cs.Bridge.NativeContract)
 	return cs
 }
 
@@ -92,7 +96,7 @@ func convertType(in reflect.Type) (abi.Type, error) {
 				return abi.NewType("address", "address", nil)
 			}
 			if in.Size() == common.HashLength && in.Name() == "Hash" {
-				return abi.NewType("hash", "hash", nil)
+				return abi.NewType("uint256", "uint256", nil)
 			}
 			return abi.NewType("bytes", "bytes", nil)
 		default:
@@ -100,11 +104,42 @@ func convertType(in reflect.Type) (abi.Type, error) {
 		}
 	case reflect.Uint8:
 		return abi.NewType("uint8", "uint8", nil)
+	case reflect.Uint32:
+		return abi.NewType("uint32", "uint32", nil)
 	case reflect.Uint64:
 		return abi.NewType("uint64", "uint64", nil)
+	case reflect.Ptr:
+		if in == reflect.TypeOf(big.NewInt(0)) {
+			return abi.NewType("uint256", "uint256", nil)
+		}
+		return abi.Type{}, fmt.Errorf("invalid pointer type: %s", in)
 	default:
 		return abi.Type{}, fmt.Errorf("invalid type: %s", in.Name())
 	}
+}
+
+func parseMethodName(method string) (name string, payble string, isContractCall bool) {
+	ss := strings.Split(method, "_")
+	if len(ss) < 2 {
+		isContractCall = false
+		return
+	}
+	if ss[0] != contractMethodNamePrefix {
+		isContractCall = false
+		return
+	}
+	isContractCall = true
+	ss = ss[1:]
+	name = ss[len(ss)-1]
+	payble = "nonpayable"
+	ss = ss[:(len(ss) - 1)]
+	if len(ss) == 0 {
+		return
+	}
+	if ss[0] == "Payble" {
+		payble = "payable"
+	}
+	return
 }
 
 func constructAbi(any interface{}) (*abi.ABI, map[string]reflect.Value, error) {
@@ -117,11 +152,11 @@ func constructAbi(any interface{}) (*abi.ABI, map[string]reflect.Value, error) {
 	ty := reflect.TypeOf(any)
 	for i := 0; i < ty.NumMethod(); i++ {
 		method := ty.Method(i)
-		if strings.HasPrefix(method.Name, contractMethodNamePrefix) {
-			name := method.Name[len(contractMethodNamePrefix):]
+		if name, payble, isContractCall := parseMethodName(method.Name); isContractCall {
 			if len(name) == 0 {
 				continue
 			}
+			//ignore method receiver and interop context
 			numIn := method.Type.NumIn() - 2
 			if numIn < 0 {
 				return nil, contractCalls, ErrInvalidContractCallInputs
@@ -164,7 +199,7 @@ func constructAbi(any interface{}) (*abi.ABI, map[string]reflect.Value, error) {
 			if len(inputs) > 0 {
 				a.Events[name] = abi.NewEvent(name, name, false, inputs)
 			}
-			a.Methods[name] = abi.NewMethod(name, name, abi.Function, "nonpayable", false, false, inputs, outputs)
+			a.Methods[name] = abi.NewMethod(name, name, abi.Function, payble, false, payble == "payble", inputs, outputs)
 		}
 	}
 	return a, contractCalls, nil

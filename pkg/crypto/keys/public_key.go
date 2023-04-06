@@ -373,7 +373,7 @@ func (p *PublicKey) Verify(signature []byte, hash []byte) bool {
 // VerifyHashable returns true if the signature is valid and corresponds
 // to the hash and public key.
 func (p *PublicKey) VerifyHashable(signature []byte, chainId uint64, hh hash.Hashable) bool {
-	var digest = hash.NetKeccak256(chainId, hh)
+	var digest = hash.NetSha256(chainId, hh)
 	return p.Verify(signature, digest[:])
 }
 

@@ -6,6 +6,7 @@ const (
 	Management  byte = 0xE2
 	Ledger      byte = 0xE3
 	Designation byte = 0xE4
+	Bridge      byte = 0xE5
 )
 
 // IsValid checks that name is a valid native contract's name.

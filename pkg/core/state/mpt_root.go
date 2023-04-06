@@ -1,6 +1,8 @@
 package state
 
 import (
+	"errors"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
@@ -19,7 +21,7 @@ type MPTRoot struct {
 func (s *MPTRoot) Hash() common.Hash {
 	buf := io.NewBufBinWriter()
 	s.EncodeBinaryUnsigned(buf.BinWriter)
-	return hash.Keccak256(buf.Bytes())
+	return hash.Sha256(buf.Bytes())
 }
 
 // DecodeBinaryUnsigned decodes hashable part of state root.
@@ -39,11 +41,17 @@ func (s *MPTRoot) EncodeBinaryUnsigned(w *io.BinWriter) {
 // DecodeBinary implements io.Serializable.
 func (s *MPTRoot) DecodeBinary(r *io.BinReader) {
 	s.DecodeBinaryUnsigned(r)
+	witnessCount := r.ReadVarUint()
+	if r.Err == nil && witnessCount != 1 {
+		r.Err = errors.New("wrong witness count")
+		return
+	}
 	s.Witness.DecodeBinary(r)
 }
 
 // EncodeBinary implements io.Serializable.
 func (s *MPTRoot) EncodeBinary(w *io.BinWriter) {
 	s.EncodeBinaryUnsigned(w)
+	w.WriteVarUint(1)
 	s.Witness.EncodeBinary(w)
 }

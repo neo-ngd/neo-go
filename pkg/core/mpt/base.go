@@ -57,7 +57,7 @@ func (b *BaseNode) updateHash(n Node) {
 	if n.Type() == HashT || n.Type() == EmptyT {
 		panic("can't update hash for empty or hash node")
 	}
-	b.hash = hash.DoubleKeccak256(b.getBytes(n))
+	b.hash = hash.DoubleSha256(b.getBytes(n))
 	b.hashValid = true
 }
 

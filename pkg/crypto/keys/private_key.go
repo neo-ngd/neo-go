@@ -113,7 +113,7 @@ func (p *PrivateKey) SignHash(digest common.Hash) []byte {
 // SignHashable signs some Hashable item for the network specified using
 // hash.NetSha256() with the private key.
 func (p *PrivateKey) SignHashable(chainId uint64, hh hash.Hashable) []byte {
-	return p.SignHash(hash.NetKeccak256(chainId, hh))
+	return p.SignHash(hash.NetSha256(chainId, hh))
 }
 
 func getSignatureSlice(curve elliptic.Curve, r, s *big.Int) []byte {

@@ -17,13 +17,6 @@ func newDesignateCommands() []cli.Command {
 	designateFlags := append(options.RPC, wallet.WalletPathFlag)
 	return []cli.Command{
 		{
-			Name:      "committee",
-			Usage:     "designate committee",
-			ArgsUsage: "<publicKey> <publicKey> ...",
-			Action:    designateCommittee,
-			Flags:     designateFlags,
-		},
-		{
 			Name:      "statevalidators",
 			Usage:     "designate state validators",
 			ArgsUsage: "<publicKey> <publicKey> ...",
@@ -31,10 +24,6 @@ func newDesignateCommands() []cli.Command {
 			Flags:     designateFlags,
 		},
 	}
-}
-
-func designateCommittee(ctx *cli.Context) error {
-	return designate(ctx, noderoles.Committee)
 }
 
 func designateStateValidators(ctx *cli.Context) error {

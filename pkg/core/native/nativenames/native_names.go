@@ -6,6 +6,7 @@ const (
 	GAS         = "GASToken"
 	Policy      = "PolicyContract"
 	Designation = "RoleManagement"
+	Bridge      = "Bridge"
 )
 
 // IsValid checks that name is a valid native contract's name.
@@ -14,5 +15,6 @@ func IsValid(name string) bool {
 		name == Ledger ||
 		name == GAS ||
 		name == Policy ||
-		name == Designation
+		name == Designation ||
+		name == Bridge
 }

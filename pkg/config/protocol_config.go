@@ -2,6 +2,9 @@ package config
 
 import (
 	"errors"
+	"sort"
+
+	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 )
 
 // ProtocolConfiguration represents the protocol config.
@@ -32,15 +35,18 @@ type (
 		// MaxTransactionsPerBlock is the maximum amount of transactions per block.
 		MaxTransactionsPerBlock uint16 `yaml:"MaxTransactionsPerBlock"`
 		// SaveStorageBatch enables storage batch saving before every persist.
-		SaveStorageBatch bool     `yaml:"SaveStorageBatch"`
-		SecondsPerBlock  int      `yaml:"SecondsPerBlock"`
-		SeedList         []string `yaml:"SeedList"`
-		ValidatorsCount  int      `yaml:"ValidatorsCount"`
-		StandbyCommittee []string `yaml:"StandbyCommittee"`
+		SaveStorageBatch     bool     `yaml:"SaveStorageBatch"`
+		SecondsPerBlock      int      `yaml:"SecondsPerBlock"`
+		SeedList             []string `yaml:"SeedList"`
+		StandbyValidators    keys.PublicKeys
+		StandbyValidatorsStr []string `yaml:"StandbyValidators"`
 		// Whether to verify received blocks.
 		VerifyBlocks bool `yaml:"VerifyBlocks"`
 		// Whether to verify transactions in received blocks.
 		VerifyTransactions bool `yaml:"VerifyTransactions"`
+
+		MainStandbyStateValidatorsScriptHash string `yaml:"MainStandbyStateValidatorsScriptHash"`
+		BridgeContractId                     int32  `yaml:"BridgeContractId"`
 	}
 )
 
@@ -48,21 +54,21 @@ type (
 // error if anything inappropriate found. Other methods can rely on protocol
 // validity after this.
 func (p *ProtocolConfiguration) Validate() error {
-	if len(p.StandbyCommittee) == 0 {
-		return errors.New("StandbyCommittee can't be empty")
+	standbyValidators, err := keys.NewPublicKeysFromStrings(p.StandbyValidatorsStr)
+	if err != nil {
+		return err
 	}
-	if p.ValidatorsCount <= 0 {
-		return errors.New("ValidatorsCount can't be 0")
+	standbyValidators = standbyValidators.Unique()
+	sort.Sort(standbyValidators)
+	p.StandbyValidators = standbyValidators
+	if len(p.StandbyValidators) == 0 {
+		return errors.New("StandbyValidators can't be empty")
 	}
-	if len(p.StandbyCommittee) < p.ValidatorsCount {
-		return errors.New("validators count can't exceed the size of StandbyCommittee")
-	}
-
 	return nil
 }
 
 // GetNumOfCNs returns the number of validators for the given height.
 // It implies valid configuration file.
 func (p *ProtocolConfiguration) GetNumOfCNs(height uint32) int {
-	return p.ValidatorsCount
+	return len(p.StandbyValidators)
 }

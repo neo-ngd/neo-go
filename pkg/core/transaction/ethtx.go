@@ -116,8 +116,9 @@ func (t *EthTx) DecodeBinary(r *nio.BinReader) {
 
 func (t EthTx) MarshalJSON() ([]byte, error) {
 	v, r, s := t.Transaction.RawSignatureValues()
-	tx := &ethTxJson{
+	tx := &EthTxJson{
 		Type:    hexutil.Uint(t.Type()),
+		Hash:    t.Hash(),
 		Nonce:   hexutil.Uint64(t.Nonce()),
 		Gas:     hexutil.Uint64(t.Gas()),
 		To:      t.To(),
@@ -143,7 +144,7 @@ func (t EthTx) MarshalJSON() ([]byte, error) {
 }
 
 func (t *EthTx) UnmarshalJSON(data []byte) error {
-	tx := new(ethTxJson)
+	tx := new(EthTxJson)
 	err := json.Unmarshal(data, tx)
 	if err != nil {
 		return err
@@ -196,6 +197,7 @@ func (t *EthTx) UnmarshalJSON(data []byte) error {
 	default:
 		return ErrUnsupportType
 	}
+	// compare hash
 	return nil
 }
 
@@ -218,20 +220,21 @@ func deriveSender(t *types.Transaction, chainId uint64) (common.Address, error) 
 	return signer.Sender(t)
 }
 
-type ethTxJson struct {
+type EthTxJson struct {
 	Type       hexutil.Uint      `json:"type"`
+	Hash       common.Hash       `json:"hash"`
 	Nonce      hexutil.Uint64    `json:"nonce"`
-	GasPrice   *hexutil.Big      `json:"gasPrice,omitempty"`
+	GasPrice   *hexutil.Big      `json:"gasPrice"`
 	GasTipCap  *hexutil.Big      `json:"gasTipCap,omitempty"`
 	GasFeeCap  *hexutil.Big      `json:"gasFeeCap,omitempty"`
 	Gas        hexutil.Uint64    `json:"gas"`
-	To         *common.Address   `json:"to,omitempty"`
+	To         *common.Address   `json:"to"`
 	Value      hexutil.Big       `json:"value"`
 	AccessList *types.AccessList `json:"accessList,omitempty"`
-	Data       hexutil.Bytes     `json:"data"`
-	V          hexutil.Big       `json:"V"`
-	R          hexutil.Big       `json:"R"`
-	S          hexutil.Big       `json:"S"`
+	Data       hexutil.Bytes     `json:"input"`
+	V          hexutil.Big       `json:"v"`
+	R          hexutil.Big       `json:"r"`
+	S          hexutil.Big       `json:"s"`
 	ChainID    hexutil.Uint      `json:"chainId"`
-	Sender     common.Address    `json:"sender"`
+	Sender     common.Address    `json:"from"`
 }

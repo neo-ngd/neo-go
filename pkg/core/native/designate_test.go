@@ -13,6 +13,7 @@ import (
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
 	"github.com/neo-ngd/neo-go/pkg/core/native/noderoles"
 	"github.com/neo-ngd/neo-go/pkg/core/storage"
+	"github.com/neo-ngd/neo-go/pkg/core/transaction"
 	"github.com/neo-ngd/neo-go/pkg/crypto/keys"
 	"github.com/stretchr/testify/assert"
 )
@@ -51,6 +52,10 @@ func (ic interopContext) Dao() *dao.Simple {
 	return ic.D
 }
 
+func (ic interopContext) Container() *transaction.Transaction {
+	return nil
+}
+
 func (ic interopContext) PersistingBlock() *block.Block {
 	return &block.Block{
 		Header: block.Header{
@@ -60,11 +65,12 @@ func (ic interopContext) PersistingBlock() *block.Block {
 }
 
 func TestCommitteeRole(t *testing.T) {
+	pubs, _ := keys.NewPublicKeysFromStrings([]string{
+		"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+	})
 	dao := dao.NewSimple(storage.NewMemoryStore())
 	des := NewDesignate(config.ProtocolConfiguration{
-		StandbyCommittee: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
+		StandbyValidators: pubs,
 	})
 	k1, err := keys.NewPublicKeyFromString("023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6")
 	assert.NoError(t, err)
@@ -73,48 +79,48 @@ func TestCommitteeRole(t *testing.T) {
 	}
 	err = des.ContractCall_initialize(ic)
 	assert.NoError(t, err)
-	ks, _, err := des.GetDesignatedByRole(dao, noderoles.Committee, 1)
+	ks, _, err := des.GetDesignatedByRole(dao, noderoles.Validator, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, ks.Len())
 	assert.Equal(t, "023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6", hex.EncodeToString(ks[0].Bytes()))
 	// - change one committee -
 	k2, err := keys.NewPublicKeyFromString("0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4")
 	assert.NoError(t, err)
-	s, err := des.GetCommitteeAddress(dao, 1)
+	s, err := des.GetConsensusAddress(dao, 1)
 	assert.NoError(t, err)
 	ic.S = s
 	ic.Index = 1
-	err = des.designateAsRole(ic, noderoles.Committee, keys.PublicKeys{k2})
+	err = des.designateAsRole(ic, noderoles.Validator, keys.PublicKeys{k2})
 	assert.NoError(t, err)
-	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Committee, 1)
+	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Validator, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6", hex.EncodeToString(ks[0].Bytes()))
-	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Committee, 3)
+	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Validator, 3)
 	assert.NoError(t, err)
 	assert.Equal(t, "0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4", hex.EncodeToString(ks[0].Bytes()))
 	// - - - - - - - - - - - - -
 	// - change committee to 2 from 1 -
-	s, err = des.GetCommitteeAddress(dao, 101)
+	s, err = des.GetConsensusAddress(dao, 101)
 	assert.NoError(t, err)
 	ic.S = s
 	ic.Index = 102
-	err = des.designateAsRole(ic, noderoles.Committee, keys.PublicKeys{k1, k2})
+	err = des.designateAsRole(ic, noderoles.Validator, keys.PublicKeys{k1, k2})
 	assert.NoError(t, err)
-	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Committee, 101)
+	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Validator, 101)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, ks.Len())
-	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Committee, 104)
+	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Validator, 104)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, ks.Len())
 }
 
 func TestDesignateContractCall(t *testing.T) {
+	pubs, _ := keys.NewPublicKeysFromStrings([]string{
+		"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+	})
 	dao := dao.NewSimple(storage.NewMemoryStore())
 	des := NewDesignate(config.ProtocolConfiguration{
-		ValidatorsCount: 1,
-		StandbyCommittee: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
+		StandbyValidators: pubs,
 	})
 	ic := interopContext{
 		D: dao,
@@ -122,7 +128,7 @@ func TestDesignateContractCall(t *testing.T) {
 	}
 	err := des.ContractCall_initialize(ic)
 	assert.NoError(t, err)
-	ic.S, _ = des.GetCommitteeAddress(dao, 1)
+	ic.S, _ = des.GetConsensusAddress(dao, 1)
 	fn, ok := des.Abi.Methods["designateAsRole"]
 	assert.True(t, ok)
 	input := append(fn.ID, []byte{0, 0}...)
@@ -140,20 +146,20 @@ func TestDesignateContractCall(t *testing.T) {
 	assert.Equal(t, ic.L[0].Address, des.Address)
 	assert.Equal(t, 2, len(ic.L[0].Topics))
 	assert.Equal(t, des.Abi.Events["designateAsRole"].ID, ic.L[0].Topics[0])
-	assert.Equal(t, common.BytesToHash([]byte{byte(noderoles.Committee)}), ic.L[0].Topics[1])
+	assert.Equal(t, common.BytesToHash([]byte{byte(noderoles.Validator)}), ic.L[0].Topics[1])
 	assert.Equal(t, ks.Bytes(), ic.L[0].Data)
 
-	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Committee, 2)
+	ks, _, err = des.GetDesignatedByRole(dao, noderoles.Validator, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, "0218cbadb9db833a6b7432a920b6bdb6b822eb2df0d59cfc5d9d590d5dfd97fef4", hex.EncodeToString(ks[0].Bytes()))
 }
 
 func TestMarshalNativeAbi(t *testing.T) {
+	pubs, _ := keys.NewPublicKeysFromStrings([]string{
+		"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
+	})
 	des := NewDesignate(config.ProtocolConfiguration{
-		ValidatorsCount: 1,
-		StandbyCommittee: []string{
-			"023c4d39a3fd2150407a9d4654430cdce0464eccaaf739eea79d63e2862f989ee6",
-		},
+		StandbyValidators: pubs,
 	})
 	b, err := json.Marshal(des)
 	assert.NoError(t, err)

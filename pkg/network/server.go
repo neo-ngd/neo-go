@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/mempool"
@@ -49,7 +50,7 @@ type (
 		extpool.Ledger
 		mempool.Feer
 		Blockqueuer
-		GetBlock(hash common.Hash, full bool) (*block.Block, error)
+		GetBlock(hash common.Hash, full bool) (*block.Block, *types.Receipt, error)
 		GetConfig() config.ProtocolConfiguration
 		GetHeader(hash common.Hash) (*block.Header, error)
 		GetHeaderHash(int) common.Hash
@@ -645,7 +646,7 @@ func (s *Server) handleGetDataCmd(p Peer, inv *payload.Inventory) error {
 				notFound = append(notFound, hash)
 			}
 		case payload.BlockType:
-			b, err := s.chain.GetBlock(hash, true)
+			b, _, err := s.chain.GetBlock(hash, true)
 			if err == nil {
 				msg = NewMessage(CMDBlock, b)
 			} else {
@@ -714,7 +715,7 @@ func (s *Server) handleGetBlockByIndexCmd(p Peer, gbd *payload.GetBlockByIndex) 
 		if hash == (common.Hash{}) {
 			break
 		}
-		b, err := s.chain.GetBlock(hash, true)
+		b, _, err := s.chain.GetBlock(hash, true)
 		if err != nil {
 			break
 		}

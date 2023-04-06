@@ -8,13 +8,14 @@ ProtocolConfiguration:
   MaxTransactionsPerBlock: 512
   SecondsPerBlock: 15
   MemPoolSize: 50000
-  ValidatorsCount: 1
-  StandbyCommittee:
-    - 027c2f67a9fe80b92f61595e97349bdd6899f1231e243a38d664d198727a9db6ec
+  StandbyValidators:
+    - 02a958dcbdda5fe1176fb6c76635f37ddccc50dd138496708007821db8c80f3935
   SeedList:
     - seed1t.ngd.network:20333
   VerifyBlocks: true
   VerifyTransactions: false
+  MainStandbyStateValidatorsScriptHash: ""
+  BridgeContractId: 1
 
 ApplicationConfiguration:
   # LogPath could be set up in case you need stdout logs to some proper file.
