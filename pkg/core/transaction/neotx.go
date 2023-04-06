@@ -217,7 +217,7 @@ type NeoTxJson struct {
 	GasPrice hexutil.Big     `json:"gasPrice"`
 	Gas      hexutil.Uint64  `json:"gas"`
 	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to,omitempty"`
+	To       *common.Address `json:"to"`
 	Value    hexutil.Big     `json:"value"`
 	Data     hexutil.Bytes   `json:"data"`
 	Witness  Witness         `json:"witness"`

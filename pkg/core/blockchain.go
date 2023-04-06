@@ -999,6 +999,7 @@ func (bc *Blockchain) GetBlock(hash common.Hash, full bool) (*block.Block, *type
 			}
 			*tx = *stx
 		}
+		block.Trimmed = false
 	}
 	return block, receipt, nil
 }

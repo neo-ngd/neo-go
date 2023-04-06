@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
@@ -19,9 +20,9 @@ type TransactionOutputRaw struct {
 
 // TransactionMetadata is an auxiliary struct for proper TransactionOutputRaw marshaling.
 type TransactionMetadata struct {
-	Blockhash        interface{} `json:"blockhash"`
-	BlockNumber      interface{} `json:"confirmations"`
-	TransactionIndex interface{} `json:"blocktime"`
+	Blockhash        common.Hash  `json:"blockHash"`
+	BlockNumber      hexutil.Uint `json:"blockNumber"`
+	TransactionIndex hexutil.Uint `json:"transactionIndex"`
 }
 
 // NewTransactionOutputRaw returns a new ransactionOutputRaw object.
@@ -34,8 +35,8 @@ func NewTransactionOutputRaw(tx *transaction.Transaction, header *block.Header, 
 	}
 	result.TransactionMetadata = TransactionMetadata{
 		Blockhash:        header.Hash(),
-		BlockNumber:      hexutil.EncodeUint64(uint64(header.Index)),
-		TransactionIndex: hexutil.EncodeUint64(uint64(receipt.TransactionIndex)),
+		BlockNumber:      hexutil.Uint(header.Index),
+		TransactionIndex: hexutil.Uint(receipt.TransactionIndex),
 	}
 	return result
 }
