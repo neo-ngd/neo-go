@@ -221,6 +221,9 @@ type NeoTxJson struct {
 	Value    hexutil.Big     `json:"value"`
 	Data     hexutil.Bytes   `json:"data"`
 	Witness  Witness         `json:"witness"`
+	R        hexutil.Big     `json:"r"`
+	S        hexutil.Big     `json:"s"`
+	V        hexutil.Big     `json:"v"`
 }
 
 // MarshalJSON implements json.Marshaler interface.
