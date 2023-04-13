@@ -990,7 +990,11 @@ func (s *Server) eth_getBlockByHash(params request.Params) (interface{}, *respon
 	if err != nil {
 		return nil, response.NewInternalServerError("can't get state root", err)
 	}
-	return result.NewBlock(block, receipt, sr), nil
+	validators, err := s.chain.GetValidators(block.Index)
+	if err != nil {
+		return nil, response.NewInternalServerError("can't get validators", err)
+	}
+	return result.NewBlock(block, receipt, sr, validators[block.PrimaryIndex].Address()), nil
 }
 
 func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *response.Error) {
@@ -1030,7 +1034,11 @@ func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *resp
 	if err != nil {
 		return nil, response.NewInternalServerError("can't get state root", err)
 	}
-	return result.NewBlock(block, receipt, sr), nil
+	validators, err := s.chain.GetValidators(block.Index)
+	if err != nil {
+		return nil, response.NewInternalServerError("can't get validators", err)
+	}
+	return result.NewBlock(block, receipt, sr, validators[block.PrimaryIndex].Address()), nil
 }
 
 func (s *Server) eth_getTransactionByHash(params request.Params) (interface{}, *response.Error) {

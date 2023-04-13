@@ -129,7 +129,7 @@ type baseJson struct {
 	Nonce         hexutil.Bytes       `json:"nonce"`
 	Index         hexutil.Uint        `json:"number"`
 	NextConsensus common.Address      `json:"nextConsensus"`
-	Miner         common.Address      `json:"miner"`
+	PrimaryIndex  hexutil.Uint        `json:"primaryIndex"`
 	Witness       transaction.Witness `json:"witness"`
 }
 
@@ -146,7 +146,7 @@ func (b Header) MarshalJSON() ([]byte, error) {
 		Nonce:         nonceb,
 		Index:         hexutil.Uint(b.Index),
 		NextConsensus: b.NextConsensus,
-		Miner:         common.BytesToAddress([]byte{b.PrimaryIndex}),
+		PrimaryIndex:  hexutil.Uint(b.PrimaryIndex),
 		Witness:       b.Witness,
 	}
 	return json.Marshal(aux)
@@ -166,7 +166,7 @@ func (b *Header) UnmarshalJSON(data []byte) error {
 	b.Timestamp = uint64(aux.Timestamp)
 	b.Index = uint32(aux.Index)
 	b.NextConsensus = aux.NextConsensus
-	b.PrimaryIndex = byte(aux.Miner[common.AddressLength-1])
+	b.PrimaryIndex = byte(aux.PrimaryIndex)
 	b.Witness = aux.Witness
 	if aux.Hash != (b.Hash()) {
 		return errors.New("json 'hash' doesn't match block hash")

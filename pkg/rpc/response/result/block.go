@@ -31,6 +31,7 @@ type (
 	// BlockMetadata is an additional metadata added to standard
 	// block.Block.
 	BlockMetadata struct {
+		Miner           common.Address `json:"miner"`
 		Size            hexutil.Uint   `json:"size"`
 		Sha3Uncles      common.Hash    `json:"sha3Uncles"`
 		LogsBloom       types.Bloom    `json:"logsBloom"`
@@ -47,13 +48,15 @@ type (
 )
 
 // NewBlock creates a new Block wrapper.
-func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot) Block {
+func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, miner common.Address) Block {
 	res := Block{
 		Header: b.Header,
 		BlockMetadata: BlockMetadata{
+			Miner:     miner,
 			Size:      hexutil.Uint(io.GetVarSize(b)),
 			StateRoot: sr.Root,
 			GasUsed:   hexutil.Uint64(receipt.GasUsed),
+			Uncles:    []common.Hash{},
 		},
 		transactionsObj: transactionsObj{
 			Transactions: make([]interface{}, len(b.Transactions)),
