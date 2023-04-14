@@ -98,7 +98,7 @@ func NewBridge(cs *Contracts, cfg config.ProtocolConfiguration) *Bridge {
 		},
 		cs:                                   cs,
 		standbyValidators:                    cfg.StandbyValidators,
-		mainStandbyStateValidatorsScriptHash: addressFromMain(cfg.MainStandbyStateValidatorsScriptHash),
+		mainStandbyStateValidatorsScriptHash: common.HexToAddress(cfg.MainStandbyStateValidatorsScriptHash),
 		mainBridgeContractId:                 cfg.BridgeContractId,
 	}
 	bridgeAbi, contractCalls, err := constructAbi(d)
@@ -832,12 +832,6 @@ func verifyMPTProof(root common.Hash, proof []byte) (key []byte, value []byte, e
 		return
 	}
 	return pwk.Key, value, nil
-}
-
-func addressFromMain(scriptHash string) common.Address {
-	b := common.FromHex(scriptHash)
-	slice.Reverse(b)
-	return common.BytesToAddress(b)
 }
 
 func parseMainInteropListECPoints(data []byte) (keys.PublicKeys, error) {

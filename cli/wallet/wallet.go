@@ -652,7 +652,7 @@ func sign(ctx *cli.Context) error {
 
 func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to common.Address, value *big.Int, data []byte) error {
 	var err error
-	var pks *keys.PublicKeys
+	var pks keys.PublicKeys
 	var script []byte
 	isMulti := false
 	m := 0
@@ -671,42 +671,24 @@ func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to co
 		return cli.NewExitError(err, 1)
 	}
 	if len(signers) == 0 {
-		committeeAddr, err := c.GetCommitteeAddress()
+		validators, err := c.GetNextValidators()
 		if err != nil {
-			return cli.NewExitError(fmt.Errorf("can't get committee address: %w", err), 1)
+			return cli.NewExitError(fmt.Errorf("can't get validators: %w", err), 1)
 		}
-		if from != committeeAddr {
+		script, err = validators.CreateDefaultMultiSigRedeemScript()
+		if err != nil {
+			return err
+		}
+		consensus := hash.Hash160(script)
+		if from != consensus {
 			return cli.NewExitError("can't find account to sign", 1)
 		}
-		committee, err := c.GetCommittee()
-		if err != nil {
-			return cli.NewExitError(fmt.Errorf("failed get committee: %w", err), 1)
-		}
-		if committee.Len() == 1 {
-			isMulti = false
-			for _, acc := range wall.Accounts {
-				if acc.Address == committeeAddr {
-					signers = append(signers, acc)
-					break
-				}
-			}
-
-		} else {
-			isMulti = true
-			pks = &committee
-			m = keys.GetMajorityHonestNodeCount(pks.Len())
-			script, err = committee.CreateMajorityMultiSigRedeemScript()
-			if err != nil {
-				return cli.NewExitError(fmt.Errorf("can't create committee multi-sig script: %w", err), 1)
-			}
-		}
-
-	}
-	if len(signers) == 0 {
-		return cli.NewExitError("can't find account to sign", 1)
+		isMulti = true
+		pks = validators
+		m = keys.GetDefaultHonestNodeCount(pks.Len())
 	}
 	if isMulti {
-		if pks == nil {
+		if pks.Len() == 0 {
 			script = signers[0].Script
 			pks, m, err = crypto.ParseMultiVerificationScript(signers[0].Script)
 			if err != nil {
@@ -785,11 +767,7 @@ func MakeNeoTx(ctx *cli.Context, wall *wallet.Wallet, from common.Address, to co
 			M:          m,
 		}
 		for _, acc := range signers {
-			for _, a := range *pks {
-				if acc.Address == a.Address() {
-					signContext.Parameters[hex.EncodeToString(a.Bytes())] = acc.PrivateKey().SignHashable(chainId, t)
-				}
-			}
+			signContext.Parameters[hex.EncodeToString(acc.Script[1:])] = acc.PrivateKey().SignHashable(chainId, t)
 		}
 		if signContext.IsComplete() {
 			tx, err = signContext.CreateTx()

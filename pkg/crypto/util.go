@@ -48,7 +48,7 @@ func IsMultiVerificationScript(script []byte) bool {
 	return len(script) > 1 && script[0] > 0
 }
 
-func ParseMultiVerificationScript(script []byte) (pks *keys.PublicKeys, m int, err error) {
+func ParseMultiVerificationScript(script []byte) (pks keys.PublicKeys, m int, err error) {
 	if len(script) < 1 {
 		err = ErrEmptyScript
 		return
@@ -62,13 +62,13 @@ func ParseMultiVerificationScript(script []byte) (pks *keys.PublicKeys, m int, e
 		err = ErrPublicKeyCountExceedsLimit
 		return
 	}
-	pks = &keys.PublicKeys{}
+	pks = keys.PublicKeys{}
 	err = pks.DecodeBytes(script[1:])
 	if err != nil {
 		return
 	}
 	tks := pks.Unique()
-	pks = &tks
+	pks = tks
 	sort.Sort(pks)
 	if pks.Len() > keys.MaxMultiSigCount {
 		err = ErrPublicKeyCountExceedsLimit

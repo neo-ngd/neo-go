@@ -194,35 +194,35 @@ func (c *Client) GetConnectionCount() (int, error) {
 	return resp, nil
 }
 
-func (c *Client) GetCommittee() (keys.PublicKeys, error) {
-	var (
-		params = request.NewRawParams()
-		resp   = new(keys.PublicKeys)
-	)
-	if err := c.performRequest("getcommittee", params, resp); err != nil {
-		return nil, err
-	}
-	return *resp, nil
-}
-
-func (c *Client) GetValidators() (keys.PublicKeys, error) {
-	var (
-		params = request.NewRawParams()
-		resp   = new(keys.PublicKeys)
-	)
-	if err := c.performRequest("getvalidators", params, resp); err != nil {
-		return nil, err
-	}
-	return *resp, nil
-}
-
-func (c *Client) GetCommitteeAddress() (common.Address, error) {
+func (c *Client) GetConsensusAddress() (common.Address, error) {
 	var (
 		params = request.NewRawParams()
 		resp   = new(common.Address)
 	)
-	if err := c.performRequest("getcommitteeaddress", params, resp); err != nil {
+	if err := c.performRequest("getconsensusaddress", params, resp); err != nil {
 		return common.Address{}, err
+	}
+	return *resp, nil
+}
+
+func (c *Client) GetValidators(index uint32) (keys.PublicKeys, error) {
+	var (
+		params = request.NewRawParams(index)
+		resp   = new(keys.PublicKeys)
+	)
+	if err := c.performRequest("getnextvalidators", params, resp); err != nil {
+		return nil, err
+	}
+	return *resp, nil
+}
+
+func (c *Client) GetNextValidators() (keys.PublicKeys, error) {
+	var (
+		params = request.NewRawParams()
+		resp   = new(keys.PublicKeys)
+	)
+	if err := c.performRequest("getnextvalidators", params, resp); err != nil {
+		return nil, err
 	}
 	return *resp, nil
 }

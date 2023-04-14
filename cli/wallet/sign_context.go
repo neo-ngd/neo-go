@@ -69,7 +69,7 @@ func (sc *SignContext) CreateTx() (*transaction.Transaction, error) {
 	}
 	sigs := make([][]byte, sc.M)
 	i := 0
-	for _, pk := range *pks {
+	for _, pk := range pks {
 		pkstring := hex.EncodeToString(pk.Bytes())
 		if sc.Parameters[pkstring] != nil {
 			sigs[i] = sc.Parameters[pkstring]
@@ -127,7 +127,7 @@ func Sign(wall *wallet.Wallet, context *SignContext) error {
 	}
 	haspk := false
 	for _, acc := range wall.Accounts {
-		for _, p := range *pks {
+		for _, p := range pks {
 			if p.Address() == acc.Address {
 				haspk = true
 				pass, err := input.ReadPassword(fmt.Sprintf("Enter password for %s > ", acc.Address))

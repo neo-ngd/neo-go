@@ -23,12 +23,6 @@ func NewCommands() []cli.Command {
 		Usage: "query data from RPC node",
 		Subcommands: []cli.Command{
 			{
-				Name:   "committee",
-				Usage:  "get committee list",
-				Action: queryCommittee,
-				Flags:  options.RPC,
-			},
-			{
 				Name:   "validators",
 				Usage:  "get validators list",
 				Action: queryValidator,
@@ -59,7 +53,7 @@ func queryValidator(ctx *cli.Context) error {
 	if err != nil {
 		return cli.NewExitError(err, 1)
 	}
-	validators, err := c.GetValidators()
+	validators, err := c.GetNextValidators()
 	if err != nil {
 		return cli.NewExitError(err, 1)
 	}
@@ -103,25 +97,6 @@ func queryTx(ctx *cli.Context) error {
 		return cli.NewExitError(err, 1)
 	}
 	fmt.Fprintf(ctx.App.Writer, "receipt: %s\n", string(b))
-	return nil
-}
-
-func queryCommittee(ctx *cli.Context) error {
-	var err error
-	gctx, cancel := options.GetTimeoutContext(ctx)
-	defer cancel()
-
-	c, err := options.GetRPCClient(gctx, ctx)
-	if err != nil {
-		return cli.NewExitError(err, 1)
-	}
-	comm, err := c.GetCommittee()
-	if err != nil {
-		return cli.NewExitError(err, 1)
-	}
-	for _, k := range comm {
-		fmt.Fprintln(ctx.App.Writer, hex.EncodeToString(k.Bytes()))
-	}
 	return nil
 }
 

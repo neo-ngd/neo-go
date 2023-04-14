@@ -420,9 +420,7 @@ func (dao *Simple) GetStateSyncPoint() (uint32, error) {
 // GetHeaderHashes returns a sorted list of header hashes retrieved from
 // the given underlying store.
 func (dao *Simple) GetHeaderHashes() ([]common.Hash, error) {
-	fmt.Println("read hashes")
 	var hashes = make([]common.Hash, 0)
-
 	var seekErr error
 	dao.Store.Seek(storage.SeekRange{
 		Prefix: dao.mkKeyPrefix(storage.IXHeaderHashList),
@@ -435,9 +433,6 @@ func (dao *Simple) GetHeaderHashes() ([]common.Hash, error) {
 		hashes = append(hashes, newHashes...)
 		return true
 	})
-	for _, hash := range hashes {
-		fmt.Println(hash)
-	}
 	return hashes, seekErr
 }
 

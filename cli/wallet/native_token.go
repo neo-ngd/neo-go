@@ -122,8 +122,9 @@ func transferNativeToken(ctx *cli.Context) error {
 	}
 	var facc *wallet.Account
 	fromFlag := ctx.Generic("from").(*flags.Address)
+	var from common.Address
 	if fromFlag.IsSet {
-		from := fromFlag.Address()
+		from = fromFlag.Address()
 		if from == (common.Address{}) {
 			return cli.NewExitError(fmt.Errorf("invalid from address"), 1)
 		}
@@ -145,11 +146,8 @@ func transferNativeToken(ctx *cli.Context) error {
 			}
 		}
 	}
-	if facc == nil {
-		return cli.NewExitError(fmt.Errorf("could not find any account in wallet"), 1)
-	}
-	if facc.IsMultiSig() {
-		return MakeNeoTx(ctx, wall, facc.Address, to, amount, nil)
+	if facc == nil || facc.IsMultiSig() {
+		return MakeNeoTx(ctx, wall, from, to, amount, nil)
 	}
 	pass, err := input.ReadPassword(fmt.Sprintf("Enter %s password > ", facc.Address))
 	if err != nil {

@@ -17,11 +17,6 @@ func NewCommands() []cli.Command {
 		Usage: "invoke native contract",
 		Subcommands: []cli.Command{
 			{
-				Name:        "designate",
-				Usage:       "designate committee or validators",
-				Subcommands: newDesignateCommands(),
-			},
-			{
 				Name:        "policy",
 				Usage:       "manage policy",
 				Subcommands: newPolicyCommands(),
@@ -74,7 +69,7 @@ func makeCommitteeTx(ctx *cli.Context, to common.Address, data []byte) error {
 	if err != nil {
 		return cli.NewExitError(err, 1)
 	}
-	committeeAddr, err := c.GetCommitteeAddress()
+	committeeAddr, err := c.GetConsensusAddress()
 	if err != nil {
 		return cli.NewExitError(fmt.Errorf("failed get committee address: %w", err), 1)
 	}

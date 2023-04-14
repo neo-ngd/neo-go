@@ -87,7 +87,7 @@ func (w *Witness) VerifyHashable(chainId uint64, hh hash.Hashable) error {
 			return ErrInvalidSignatureCount
 		}
 		for i, j := 0, 0; i < pks.Len() && j < len(sigs); {
-			if (*pks)[i].VerifyHashable(sigs[j], chainId, hh) {
+			if pks[i].VerifyHashable(sigs[j], chainId, hh) {
 				j++
 			}
 			i++
