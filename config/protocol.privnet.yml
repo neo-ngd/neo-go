@@ -14,6 +14,7 @@ ProtocolConfiguration:
     - 127.0.0.1:20333
   VerifyBlocks: true
   VerifyTransactions: false
+  MainNetwork: 1
   MainStandbyStateValidatorsScriptHash: ""
   BridgeContractId: 1
 

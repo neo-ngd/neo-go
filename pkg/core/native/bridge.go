@@ -27,7 +27,6 @@ import (
 )
 
 const (
-	MainNetwork                     = uint32(2)
 	MainRoleManagementId            = int32(-8)
 	MainBrdgeConractDepositPrefix   = 0x01
 	MainBridgeContractValidatorsKey = 0x03
@@ -84,6 +83,7 @@ type Bridge struct {
 	standbyValidators                    keys.PublicKeys
 	mainStandbyStateValidatorsScriptHash common.Address
 	mainBridgeContractId                 int32
+	mainNetwork                          uint32
 }
 
 func NewBridge(cs *Contracts, cfg config.ProtocolConfiguration) *Bridge {
@@ -100,6 +100,7 @@ func NewBridge(cs *Contracts, cfg config.ProtocolConfiguration) *Bridge {
 		standbyValidators:                    cfg.StandbyValidators,
 		mainStandbyStateValidatorsScriptHash: common.HexToAddress(cfg.MainStandbyStateValidatorsScriptHash),
 		mainBridgeContractId:                 cfg.BridgeContractId,
+		mainNetwork:                          cfg.MainNetwork,
 	}
 	bridgeAbi, contractCalls, err := constructAbi(d)
 	if err != nil {
@@ -146,7 +147,7 @@ func (b *Bridge) ContractCall_syncHeader(ic InteropContext, rawHeader []byte) er
 	if lastJoint == nil && header.Index != 0 {
 		return errors.New("genesis block unsynced")
 	}
-	if lastJoint != nil && (signer != lastJoint.NextConsensus || !verifyMainWitness(header, &header.Witness)) {
+	if lastJoint != nil && (signer != lastJoint.NextConsensus || !b.verifyMainWitness(header, &header.Witness)) {
 		return ErrInvalidSignature
 	}
 	b.saveHeader(ic.Dao(), header)
@@ -173,7 +174,7 @@ func (b *Bridge) ContractCall_syncStateRoot(ic InteropContext, rawStateroot []by
 		(validatorsAddress != (common.Address{}) && signer != validatorsAddress) {
 		return ErrInvalidStateRoot
 	}
-	if !verifyMainWitness(stateroot, &stateroot.Witness) {
+	if !b.verifyMainWitness(stateroot, &stateroot.Witness) {
 		return ErrInvalidStateRoot
 	}
 	b.saveStateRoot(ic.Dao(), stateroot)
@@ -495,14 +496,14 @@ func (b *Bridge) saveJoints(d *dao.Simple, key byte, joints []uint32) {
 	d.PutStorageItem(b.Address, []byte{key}, bs)
 }
 
-func verifyMainWitness(hh hash.Hashable, w *transaction.Witness) bool {
+func (b *Bridge) verifyMainWitness(hh hash.Hashable, w *transaction.Witness) bool {
 	isSingle, pk := isMainSingleSignature(w.VerificationScript)
 	if isSingle {
-		return pk.Verify(w.InvocationScript[2:], netSha256(MainNetwork, hh))
+		return pk.Verify(w.InvocationScript[2:], netSha256(b.mainNetwork, hh))
 	}
 	isMulti, m, n, pks := isMainMultiSignature(w.VerificationScript)
 	if isMulti {
-		msg := netSha256(MainNetwork, hh)
+		msg := netSha256(b.mainNetwork, hh)
 		signatures := getMainMultiSignatures(w.InvocationScript)
 		for x, y := 0, 0; x < m && y < n; {
 			if pks[y].Verify(signatures[x], msg) {
@@ -535,8 +536,7 @@ func (b *Bridge) verifyMerkleProof(root common.Hash, txid common.Hash, proof []b
 }
 
 func contractId(key []byte) int32 {
-	slice.Reverse(key)
-	return int32(big.NewInt(0).SetBytes(key).Int64())
+	return int32(binary.LittleEndian.Uint32(key))
 }
 
 func isDesignateStateValidators(key []byte) (bool, uint32) {
@@ -553,7 +553,7 @@ func isDesignateStateValidators(key []byte) (bool, uint32) {
 }
 
 func (b *Bridge) isBridgeContract(key []byte) bool {
-	return contractId(key) != b.mainBridgeContractId
+	return contractId(key) == b.mainBridgeContractId
 }
 
 func (b *Bridge) isDesignateValidators(key []byte) bool {

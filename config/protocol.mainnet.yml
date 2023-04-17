@@ -14,6 +14,7 @@ ProtocolConfiguration:
     - seed1.ngd.network:10333
   VerifyBlocks: true
   VerifyTransactions: false
+  MainNetwork: 860833102
   MainStandbyStateValidatorsScriptHash: ""
   BridgeContractId: 1
 

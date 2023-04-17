@@ -45,6 +45,7 @@ type (
 		// Whether to verify transactions in received blocks.
 		VerifyTransactions bool `yaml:"VerifyTransactions"`
 
+		MainNetwork                          uint32 `yaml:"MainNetwork"`
 		MainStandbyStateValidatorsScriptHash string `yaml:"MainStandbyStateValidatorsScriptHash"`
 		BridgeContractId                     int32  `yaml:"BridgeContractId"`
 	}

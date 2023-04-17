@@ -136,12 +136,13 @@ func TestMainDepositState1(t *testing.T) {
 }
 
 func TestVerifyHeader(t *testing.T) {
-	b, err := hex.DecodeString("00")
+	bridge := NewBridge(nil, config.ProtocolConfiguration{MainNetwork: 2})
+	b, err := hex.DecodeString("000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000088ea19ef550100001dac2b7c000000000000000000dceb4f94ec774633125a267eec8df86510dd998701000111")
 	assert.NoError(t, err)
 	h := new(block.Header)
 	err = io.FromByteArray(h, b)
 	assert.NoError(t, err)
-	assert.True(t, verifyMainWitness(h, &h.Witness))
+	assert.True(t, bridge.verifyMainWitness(h, &h.Witness))
 }
 
 func TestAddress(t *testing.T) {
@@ -149,4 +150,26 @@ func TestAddress(t *testing.T) {
 	a := common.BytesToAddress(b)
 	t.Log(hex.EncodeToString(a.Bytes()))
 	t.Log(a)
+}
+
+func TestIsMint(t *testing.T) {
+	bri := NewBridge(nil, config.ProtocolConfiguration{BridgeContractId: 1})
+	key, err := hex.DecodeString("010000000101")
+	assert.NoError(t, err)
+	assert.True(t, bri.isMintRequest(key))
+}
+
+func TestIsDesignateStateValidators(t *testing.T) {
+	key, err := hex.DecodeString("f8ffffff0400000e10")
+	assert.NoError(t, err)
+	ok, h := isDesignateStateValidators(key)
+	assert.True(t, ok)
+	t.Log(h)
+}
+
+func TestContractId(t *testing.T) {
+	key, err := hex.DecodeString("f8ffffff")
+	assert.NoError(t, err)
+	id := contractId(key)
+	assert.Equal(t, int32(-8), id)
 }
