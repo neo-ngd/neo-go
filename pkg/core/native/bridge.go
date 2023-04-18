@@ -10,6 +10,7 @@ import (
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
@@ -286,7 +287,12 @@ func (b *Bridge) ContractCall_requestMint(
 		return err
 	}
 	b.saveMintedState(ic, depositId, txHash)
-	return b.mintBonous(ic, BaseBonous)
+	err = b.mintBonous(ic, BaseBonous)
+	if err != nil {
+		return err
+	}
+	log(ic, b.Address, []byte(hexutil.EncodeBig(mintAmount)), txHash, common.BytesToHash(ds.to[:]))
+	return nil
 }
 
 func (b *Bridge) newLockId(d *dao.Simple) []byte {

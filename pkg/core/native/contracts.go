@@ -245,9 +245,9 @@ func contractCall(contract interface{}, nativeContract *state.NativeContract, ic
 	return r, nil
 }
 
-func log(ic InteropContext, address common.Address, data []byte, topics ...common.Hash) {
+func log(ic InteropContext, contract common.Address, data []byte, topics ...common.Hash) {
 	ic.Log(&types.Log{
-		Address:     address,
+		Address:     contract,
 		Topics:      topics,
 		Data:        data,
 		BlockNumber: uint64(ic.PersistingBlock().Index),

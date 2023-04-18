@@ -1055,7 +1055,7 @@ func (s *Server) eth_getTransactionByHash(params request.Params) (interface{}, *
 	}
 	//pending
 	if height == math.MaxUint32 {
-		return result.NewTransactionOutputRaw(tx, nil, nil), nil
+		return nil, nil
 	}
 	_header := s.chain.GetHeaderHash(int(height))
 	header, err := s.chain.GetHeader(_header)

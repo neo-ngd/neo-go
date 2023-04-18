@@ -224,9 +224,9 @@ type EthTxJson struct {
 	Type       hexutil.Uint      `json:"type"`
 	Hash       common.Hash       `json:"hash"`
 	Nonce      hexutil.Uint64    `json:"nonce"`
-	GasPrice   *hexutil.Big      `json:"gasPrice"`
-	GasTipCap  *hexutil.Big      `json:"gasTipCap,omitempty"`
-	GasFeeCap  *hexutil.Big      `json:"gasFeeCap,omitempty"`
+	GasPrice   *hexutil.Big      `json:"gasPrice,omitempty"`
+	GasTipCap  *hexutil.Big      `json:"maxPriorityFeePerGas,omitempty"`
+	GasFeeCap  *hexutil.Big      `json:"maxFeePerGas,omitempty"`
 	Gas        hexutil.Uint64    `json:"gas"`
 	To         *common.Address   `json:"to"`
 	Value      hexutil.Big       `json:"value"`
