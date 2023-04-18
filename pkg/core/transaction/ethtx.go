@@ -95,7 +95,7 @@ func (t *EthTx) DecodeRLP(s *rlp.Stream) error {
 }
 
 func (t *EthTx) EncodeBinary(w *nio.BinWriter) {
-	err := rlp.Encode(w, t)
+	err := rlp.Encode(w, t.Transaction)
 	w.Err = err
 }
 
@@ -104,7 +104,7 @@ func (t *EthTx) DecodeBinary(r *nio.BinReader) {
 	defer func() {
 		r.Err = err
 	}()
-	err = rlp.Decode(r, t)
+	err = rlp.Decode(r, t.Transaction)
 	if err != nil {
 		return
 	}

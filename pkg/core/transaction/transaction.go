@@ -182,7 +182,7 @@ func (t *Transaction) Hash() common.Hash {
 	}
 	var h common.Hash
 	if t.Type == EthTxType {
-		h = hash.RlpHash(t.EthTx)
+		h = hash.RlpHash(t.EthTx.Transaction)
 	} else {
 		h = t.NeoTx.Hash()
 	}
