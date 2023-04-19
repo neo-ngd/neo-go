@@ -23,7 +23,7 @@ func TestEncodeRLP(t *testing.T) {
 }
 
 func TestDynamicTx(t *testing.T) {
-	s := "02f8778202c6808502540be4008502540be40083018f9c94db79b170133f6928678f9df0b9b571b23d7e0fbe880de0b6b3a764000080c001a09cb78833af8f8047094f6ba894e94bead3170c9c9787f8585eda190f6bb238c8a05d319de15198a02c2ff6e1df8a483c2402f52302c8c082677e4e121565c4ef3c"
+	s := "02f87504808502540be4008502540be40083018f9c94ef8e8e9e00b9ef71519728923a148632f9cad3d3880de0b6b3a764000080c001a0f2483ce9a2b374064c74f93f08fa7f119ef08c82c4c64f251637d65e91d864f2a051f6e8c4b5d122b4467c925c2ba5e8f4f6ffed1f57b349c2ba2689ee391c7eec"
 	b, err := hex.DecodeString(s)
 	assert.NoError(t, err)
 	tx := &types.Transaction{}
@@ -31,10 +31,14 @@ func TestDynamicTx(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, types.DynamicFeeTxType, int(tx.Type()))
 	etx, err := NewEthTx(tx)
+	t.Log(etx.Hash())
 	assert.NoError(t, err)
 	b, err = json.Marshal(etx)
 	assert.NoError(t, err)
 	t.Log(string(b))
+	tt := NewTx(etx)
+	assert.NoError(t, err)
+	assert.Equal(t, tt.Hash(), tx.Hash())
 }
 
 func TestLegacyTx(t *testing.T) {

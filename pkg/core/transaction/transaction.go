@@ -9,7 +9,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/neo-ngd/neo-go/pkg/crypto/hash"
 	"github.com/neo-ngd/neo-go/pkg/io"
 )
 
@@ -182,7 +181,7 @@ func (t *Transaction) Hash() common.Hash {
 	}
 	var h common.Hash
 	if t.Type == EthTxType {
-		h = hash.RlpHash(t.EthTx.Transaction)
+		h = t.EthTx.Hash()
 	} else {
 		h = t.NeoTx.Hash()
 	}

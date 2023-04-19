@@ -95,7 +95,7 @@ func (t *EthTx) DecodeRLP(s *rlp.Stream) error {
 }
 
 func (t *EthTx) EncodeBinary(w *nio.BinWriter) {
-	err := rlp.Encode(w, t.Transaction)
+	err := rlp.Encode(w, &t.Transaction)
 	w.Err = err
 }
 
@@ -104,7 +104,7 @@ func (t *EthTx) DecodeBinary(r *nio.BinReader) {
 	defer func() {
 		r.Err = err
 	}()
-	err = rlp.Decode(r, t.Transaction)
+	err = rlp.Decode(r, &t.Transaction)
 	if err != nil {
 		return
 	}
@@ -133,9 +133,8 @@ func (t EthTx) MarshalJSON() ([]byte, error) {
 	if t.Transaction.Type() == types.DynamicFeeTxType {
 		tx.GasFeeCap = (*hexutil.Big)(t.Transaction.GasFeeCap())
 		tx.GasTipCap = (*hexutil.Big)(t.Transaction.GasTipCap())
-	} else {
-		tx.GasPrice = (*hexutil.Big)(t.GasPrice())
 	}
+	tx.GasPrice = (*hexutil.Big)(t.GasPrice())
 	if t.Transaction.Type() != types.LegacyTxType {
 		al := t.Transaction.AccessList()
 		tx.AccessList = &al
