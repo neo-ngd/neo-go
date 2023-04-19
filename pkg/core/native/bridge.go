@@ -295,6 +295,15 @@ func (b *Bridge) ContractCall_requestMint(
 	return nil
 }
 
+func (b *Bridge) GetMinted(d *dao.Simple, depositId int64) (common.Hash, error) {
+	idBytes := big.NewInt(int64(depositId)).Bytes()
+	state := b.getMintedState(d, idBytes)
+	if state == nil {
+		return common.Hash{}, nil
+	}
+	return state.mintTx, nil
+}
+
 func (b *Bridge) newLockId(d *dao.Simple) []byte {
 	id := make([]byte, 8)
 	num := uint64(0)

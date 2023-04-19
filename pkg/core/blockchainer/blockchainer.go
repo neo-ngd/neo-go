@@ -69,4 +69,5 @@ type Blockchainer interface {
 	GetGasPrice() *big.Int
 	GetNonce(addr common.Address) uint64
 	GetLogs(filter *filters.LogFilter) ([]*types.Log, error)
+	GetMinted(id int64) (common.Hash, error)
 }

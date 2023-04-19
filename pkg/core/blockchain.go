@@ -1528,3 +1528,7 @@ func (bc *Blockchain) GetLogs(filter *filters.LogFilter) ([]*types.Log, error) {
 	}
 	return logs, nil
 }
+
+func (bc *Blockchain) GetMinted(id int64) (common.Hash, error) {
+	return bc.contracts.Bridge.GetMinted(bc.dao, id)
+}

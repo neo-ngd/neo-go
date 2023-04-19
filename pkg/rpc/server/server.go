@@ -129,9 +129,16 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"eth_getLogs":                             (*Server).eth_getLogs,
 	"eth_getUncleByBlockHashAndIndex":         (*Server).eth_getUncleByBlockHashAndIndex,
 	// -- end eth api
+
 	// -- start gether api
 	"txpool_content": (*Server).txpool_content,
 	// -- end gether api
+
+	// -- start bridge api
+	"bridge_getMinted": (*Server).getMinted,
+	// -- end bridge api
+
+	// -- start neo api
 	"getversion":           (*Server).getVersion,
 	"calculategas":         (*Server).calculateGas,
 	"findstates":           (*Server).findStates,
@@ -1853,6 +1860,24 @@ func (s *Server) sendrawtransaction(reqParams request.Params) (interface{}, *res
 	}
 	tx := transaction.NewTx(NeoTx)
 	return getRelayResult(s.coreServer.RelayTxn(tx), tx.Hash())
+}
+
+func (s *Server) getMinted(reqParams request.Params) (interface{}, *response.Error) {
+	if len(reqParams) < 1 {
+		return nil, response.NewInvalidParamsError("not enough parameters", nil)
+	}
+	id, err := reqParams[0].GetInt()
+	if err != nil {
+		return nil, response.NewInvalidParamsError(err.Error(), err)
+	}
+	txid, err := s.chain.GetMinted(int64(id))
+	if err != nil {
+		return nil, response.NewInternalServerError("can't get minted", err)
+	}
+	if txid == (common.Hash{}) {
+		return nil, nil
+	}
+	return txid, nil
 }
 
 // subscribe handles subscription requests from websocket clients.
