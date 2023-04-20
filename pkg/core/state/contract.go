@@ -84,8 +84,8 @@ func abiToFields(nabi abi.ABI) []fieldJson {
 				Type: input.Type.String(),
 			}
 		}
-		for j, output := range method.Inputs {
-			fields[i].Inputs[j] = argJson{
+		for j, output := range method.Outputs {
+			fields[i].Outputs[j] = argJson{
 				Name: output.Name,
 				Type: output.Type.String(),
 			}

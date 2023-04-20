@@ -108,6 +108,8 @@ func convertType(in reflect.Type) (abi.Type, error) {
 		return abi.NewType("uint32", "uint32", nil)
 	case reflect.Uint64:
 		return abi.NewType("uint64", "uint64", nil)
+	case reflect.Int64:
+		return abi.NewType("int64", "int64", nil)
 	case reflect.Ptr:
 		if in == reflect.TypeOf(big.NewInt(0)) {
 			return abi.NewType("uint256", "uint256", nil)
@@ -118,7 +120,7 @@ func convertType(in reflect.Type) (abi.Type, error) {
 	}
 }
 
-func parseMethodName(method string) (name string, payble string, isContractCall bool) {
+func parseMethodName(method string) (name string, mutability string, isContractCall bool) {
 	ss := strings.Split(method, "_")
 	if len(ss) < 2 {
 		isContractCall = false
@@ -131,13 +133,20 @@ func parseMethodName(method string) (name string, payble string, isContractCall 
 	isContractCall = true
 	ss = ss[1:]
 	name = ss[len(ss)-1]
-	payble = "nonpayable"
+	mutability = "nonpayable"
 	ss = ss[:(len(ss) - 1)]
 	if len(ss) == 0 {
 		return
 	}
 	if ss[0] == "Payble" {
-		payble = "payable"
+		mutability = "payable"
+	}
+	ss = ss[1:]
+	if len(ss) == 0 {
+		return
+	}
+	if ss[0] == "View" {
+		mutability += " view"
 	}
 	return
 }
@@ -152,7 +161,7 @@ func constructAbi(any interface{}) (*abi.ABI, map[string]reflect.Value, error) {
 	ty := reflect.TypeOf(any)
 	for i := 0; i < ty.NumMethod(); i++ {
 		method := ty.Method(i)
-		if name, payble, isContractCall := parseMethodName(method.Name); isContractCall {
+		if name, mutability, isContractCall := parseMethodName(method.Name); isContractCall {
 			if len(name) == 0 {
 				continue
 			}
@@ -184,22 +193,24 @@ func constructAbi(any interface{}) (*abi.ABI, map[string]reflect.Value, error) {
 			outputs := abi.Arguments{}
 			if numOut > 1 {
 				b := method.Type.Out(0)
-				if (b.Kind() != reflect.Array && b.Kind() != reflect.Slice) || b.Elem().Kind() != reflect.Int8 {
+				if (b.Kind() != reflect.Array && b.Kind() != reflect.Slice) || b.Elem().Kind() != reflect.Uint8 {
 					return nil, contractCalls, ErrInvalidContractCallReturn
 				}
-				r, _ := abi.NewType("bytes", "bytes", nil)
-				outputs = abi.Arguments{
-					{
-						Name: "result",
-						Type: r,
-					},
+				r, err := abi.NewType("bytes", "bytes", nil)
+				if err != nil {
+					return nil, contractCalls, err
 				}
+				outputs = append(outputs, abi.Argument{
+					Name: "result",
+					Type: r,
+				})
 			}
 			contractCalls[name] = method.Func
 			if len(inputs) > 0 {
 				a.Events[name] = abi.NewEvent(name, name, false, inputs)
 			}
-			a.Methods[name] = abi.NewMethod(name, name, abi.Function, payble, false, payble == "payble", inputs, outputs)
+			meth := abi.NewMethod(name, name, abi.Function, mutability, false, strings.Contains(mutability, "payble"), inputs, outputs)
+			a.Methods[name] = meth
 		}
 	}
 	return a, contractCalls, nil

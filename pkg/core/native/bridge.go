@@ -10,7 +10,6 @@ import (
 
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/dao"
@@ -291,8 +290,16 @@ func (b *Bridge) ContractCall_requestMint(
 	if err != nil {
 		return err
 	}
-	log(ic, b.Address, []byte(hexutil.EncodeBig(mintAmount)), txHash, common.BytesToHash(ds.to[:]))
+	log(ic, b.Address, mintAmount.Bytes(), txHash, common.BytesToHash(ds.to[:]))
 	return nil
+}
+
+func (b *Bridge) ContractCall__View_getMinted(ic InteropContext, depositId int64) ([]byte, error) {
+	txid, err := b.GetMinted(ic.Dao(), depositId)
+	if err != nil {
+		return nil, err
+	}
+	return txid[:], nil
 }
 
 func (b *Bridge) GetMinted(d *dao.Simple, depositId int64) (common.Hash, error) {
@@ -316,7 +323,7 @@ func (b *Bridge) newLockId(d *dao.Simple) []byte {
 	return id
 }
 
-func (b *Bridge) ContractCall_Payable_Lock(ic InteropContext, to common.Address) error {
+func (b *Bridge) ContractCall_Payable_lock(ic InteropContext, to common.Address) error {
 	value := ic.Container().Value()
 	value = big.NewInt(0).Div(value, _10GWei)
 	if value.Cmp(MintThreashold) < 0 {
@@ -606,6 +613,8 @@ func (d *Bridge) RequiredGas(ic InteropContext, input []byte) uint64 {
 	switch method.Name {
 	case "initialize":
 		return 0
+	case "getMinted":
+		return defaultNativeReadFee
 	case "syncHeader", "syncStateRoot", "syncStateRootValidatorsAddress", "syncValidators", "requestMint":
 		return defaultNativeWriteFee
 	default:
