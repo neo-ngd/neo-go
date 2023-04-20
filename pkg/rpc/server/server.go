@@ -533,7 +533,7 @@ func (s *Server) web3_sha3(params request.Params) (interface{}, *response.Error)
 }
 
 func (s *Server) net_version(_ request.Params) (interface{}, *response.Error) {
-	return s.chainId, nil
+	return hexutil.EncodeUint64(s.chainId), nil
 }
 
 func (s *Server) net_peerCount(_ request.Params) (interface{}, *response.Error) {
