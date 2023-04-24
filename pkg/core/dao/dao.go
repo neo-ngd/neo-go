@@ -221,14 +221,14 @@ func (dao *Simple) GetReceipt(hash common.Hash) (*types.Receipt, error) {
 
 // GetTransaction returns Transaction and its height by the given hash
 // if it exists in the store. It does not return dummy transactions.
-func (dao *Simple) GetTransaction(hash common.Hash) (*transaction.Transaction, uint32, error) {
+func (dao *Simple) GetTransaction(hash common.Hash) (*transaction.Transaction, *types.Receipt, uint32, error) {
 	key := dao.makeTxKey(hash)
 	b, err := dao.Store.Get(key)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 	if len(b) < 6 {
-		return nil, 0, errors.New("bad transaction bytes")
+		return nil, nil, 0, errors.New("bad transaction bytes")
 	}
 	r := io.NewBinReaderFromBuf(b)
 	var height = r.ReadU32LE()
@@ -236,9 +236,15 @@ func (dao *Simple) GetTransaction(hash common.Hash) (*transaction.Transaction, u
 	bTx := r.ReadVarBytes()
 	err = io.FromByteArray(tx, bTx)
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
-	return tx, height, nil
+	bReceipt := r.ReadVarBytes()
+	receipt := &types.Receipt{}
+	err = json.Unmarshal(bReceipt, receipt)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	return tx, receipt, height, nil
 }
 
 // -- end notification event.

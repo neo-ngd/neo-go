@@ -128,6 +128,7 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"eth_getFilterLogs":                       (*Server).eth_getFilterLogs,
 	"eth_getLogs":                             (*Server).eth_getLogs,
 	"eth_getUncleByBlockHashAndIndex":         (*Server).eth_getUncleByBlockHashAndIndex,
+	"eth_feeHistory":                          (*Server).eth_feeHistory,
 	// -- end eth api
 
 	// -- start gether api
@@ -1053,7 +1054,7 @@ func (s *Server) eth_getTransactionByHash(params request.Params) (interface{}, *
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
-	tx, height, err := s.chain.GetTransaction(txHash)
+	tx, receipt, height, err := s.chain.GetTransaction(txHash)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil, nil
@@ -1068,10 +1069,6 @@ func (s *Server) eth_getTransactionByHash(params request.Params) (interface{}, *
 	header, err := s.chain.GetHeader(_header)
 	if err != nil {
 		return nil, response.NewRPCError("Failed to get header for the transaction", err.Error(), err)
-	}
-	receipt, err := s.chain.GetReceipt(txHash)
-	if err != nil {
-		return nil, response.NewRPCError("Failed to get receipt for the transaction", err.Error(), err)
 	}
 	return result.NewTransactionOutputRaw(tx, header, receipt), nil
 }
@@ -1096,16 +1093,9 @@ func (s *Server) eth_getTransactionByBlockHashAndIndex(params request.Params) (i
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Index exceeds tx count in block: %d", index), errors.New("index exceeds tx count"))
 	}
 	txHash := block.Transactions[index].Hash()
-	tx, _, err := s.chain.GetTransaction(txHash)
+	tx, receipt, _, err := s.chain.GetTransaction(txHash)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Failed to get tx: %s", err), err)
-	}
-	receipt, err := s.chain.GetReceipt(block.Transactions[index].Hash())
-	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
-			return nil, nil
-		}
-		return nil, response.NewRPCError(fmt.Sprintf("Failed to get receipt for the transaction: %s", err), err.Error(), err)
 	}
 	return result.NewTransactionOutputRaw(tx, &block.Header, receipt), nil
 }
@@ -1135,16 +1125,9 @@ func (s *Server) eth_getTransactionByBlockNumberAndIndex(params request.Params) 
 		return nil, response.NewInvalidRequestError(fmt.Sprintf("Index exceeds tx count in block: %d", index), errors.New("index exceeds tx count"))
 	}
 	txHash := block.Transactions[index].Hash()
-	tx, _, err := s.chain.GetTransaction(txHash)
+	tx, receipt, _, err := s.chain.GetTransaction(txHash)
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("Failed to get tx: %s", err), err)
-	}
-	receipt, err := s.chain.GetReceipt(block.Transactions[index].Hash())
-	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
-			return nil, nil
-		}
-		return nil, response.NewRPCError("Failed to get receipt for the transaction", err.Error(), err)
 	}
 	return result.NewTransactionOutputRaw(tx, &block.Header, receipt), nil
 }
@@ -1154,11 +1137,15 @@ func (s *Server) eth_getTransactionReceipt(params request.Params) (interface{}, 
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
-	receipt, err := s.chain.GetReceipt(txHash)
+	tx, receipt, _, err := s.chain.GetTransaction(txHash)
 	if err != nil && !errors.Is(err, storage.ErrKeyNotFound) {
 		return nil, response.NewRPCError(fmt.Sprintf("Failed to get receipt: %s", err), err.Error(), err)
 	}
-	return receipt, nil
+	if receipt == nil {
+		return nil, response.NewRPCError("transaction is pending", "", nil)
+	}
+
+	return result.NewRReceipt(receipt, tx), nil
 }
 
 func (s *Server) eth_newFilter(params request.Params) (interface{}, *response.Error) {
@@ -1205,6 +1192,23 @@ func (s *Server) eth_getLogs(params request.Params) (interface{}, *response.Erro
 
 func (s *Server) eth_getUncleByBlockHashAndIndex(_ request.Params) (interface{}, *response.Error) {
 	return nil, nil
+}
+
+func (s *Server) eth_feeHistory(_ request.Params) (interface{}, *response.Error) {
+	_, receipt, err := s.chain.GetBlock(s.chain.CurrentBlockHash(), false)
+	if err != nil {
+		return nil, response.NewInternalServerError("can't get current block", err)
+	}
+	fh, err := result.NewFeeHistory([]*types.Receipt{receipt}, s.chain.GetGasPrice())
+	if err != nil {
+		return nil, response.NewInternalServerError("can't create fee history", err)
+	}
+	b, err := json.Marshal(fh)
+	if err != nil {
+		return nil, response.NewInternalServerError("cann't marshal", err)
+	}
+	fmt.Println(string(b))
+	return fh, nil
 }
 
 // -- end eth api.
@@ -1669,7 +1673,7 @@ func (s *Server) getrawtransaction(reqParams request.Params) (interface{}, *resp
 	if err != nil {
 		return nil, response.ErrInvalidParams
 	}
-	tx, height, err := s.chain.GetTransaction(txHash)
+	tx, receipt, height, err := s.chain.GetTransaction(txHash)
 	if err != nil {
 		err = fmt.Errorf("invalid transaction %s: %w", txHash, err)
 		return nil, response.NewRPCError("Unknown transaction", err.Error(), err)
@@ -1683,11 +1687,7 @@ func (s *Server) getrawtransaction(reqParams request.Params) (interface{}, *resp
 		if err != nil {
 			return nil, response.NewRPCError("Failed to get block header for the transaction", err.Error(), err)
 		}
-		aer, err := s.chain.GetReceipt(txHash)
-		if err != nil {
-			return nil, response.NewRPCError("Failed to get receipt for the transaction", err.Error(), err)
-		}
-		return result.NewTransactionOutputRaw(tx, header, aer), nil
+		return result.NewTransactionOutputRaw(tx, header, receipt), nil
 	}
 	b, err := tx.Bytes()
 	if err != nil {
@@ -1702,7 +1702,7 @@ func (s *Server) getTransactionHeight(ps request.Params) (interface{}, *response
 		return nil, response.ErrInvalidParams
 	}
 
-	_, height, err := s.chain.GetTransaction(h)
+	_, _, height, err := s.chain.GetTransaction(h)
 	if err != nil || height == math.MaxUint32 {
 		return nil, response.NewRPCError("Unknown transaction", "", nil)
 	}

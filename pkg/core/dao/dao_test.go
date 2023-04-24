@@ -20,7 +20,7 @@ func TestStoreTx(t *testing.T) {
 	assert.NoError(t, err)
 	_, err = d.GetReceipt(tx.Hash())
 	assert.NoError(t, err)
-	txx, h, err := d.GetTransaction(tx.Hash())
+	txx, _, h, err := d.GetTransaction(tx.Hash())
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(0), h)
 	assert.True(t, txx.Hash() == tx.Hash())

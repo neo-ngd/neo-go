@@ -680,6 +680,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		execErr       error
 		logIndex      uint
 		cumulativeGas uint64
+		blockGasUsed  uint64
 	)
 	err = bc.onPersist(cache, block)
 	if err != nil {
@@ -689,6 +690,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 	for i, tx := range block.Transactions {
 		bc.log.Debug("executing tx", zap.String("hash", tx.Hash().String()))
 		gasPrice := bc.GetGasPrice()
+		blockGasUsed += tx.Gas()
 		netFee := transaction.CalculateNetworkFee(tx, bc.FeePerByte())
 		gas := tx.Gas() - netFee
 		ic, err := interop.NewContext(block, tx, sdb, bc)
@@ -753,6 +755,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		if execErr == nil {
 			aer.Status = 1
 		}
+		aer.PostState = []byte{byte(aer.Status)}
 		appExecResults = append(appExecResults, aer)
 		aerchan <- aer
 	}
@@ -765,7 +768,7 @@ func (bc *Blockchain) storeBlock(block *block.Block, txpool *mempool.Pool) error
 		BlockNumber:       big.NewInt(int64(block.Index)),
 		TxHash:            block.Hash(),
 		TransactionIndex:  0,
-		GasUsed:           cumulativeGas,
+		GasUsed:           blockGasUsed,
 		ContractAddress:   common.Address{},
 		CumulativeGasUsed: cumulativeGas,
 		Logs:              []*types.Log{},
@@ -951,17 +954,11 @@ func (bc *Blockchain) persist(isSync bool) (time.Duration, error) {
 }
 
 // GetTransaction returns a TX and its height by the given hash. The height is MaxUint32 if tx is in the mempool.
-func (bc *Blockchain) GetTransaction(hash common.Hash) (*transaction.Transaction, uint32, error) {
+func (bc *Blockchain) GetTransaction(hash common.Hash) (*transaction.Transaction, *types.Receipt, uint32, error) {
 	if tx, ok := bc.memPool.TryGetValue(hash); ok {
-		return tx, math.MaxUint32, nil // the height is not actually defined for memPool transaction.
+		return tx, nil, math.MaxUint32, nil // the height is not actually defined for memPool transaction.
 	}
 	return bc.dao.GetTransaction(hash)
-}
-
-// GetAppExecResults returns application execution results with the specified trigger by the given
-// tx hash or block hash.
-func (bc *Blockchain) GetReceipt(hash common.Hash) (*types.Receipt, error) {
-	return bc.dao.GetReceipt(hash)
 }
 
 // GetStorageItem returns an item from storage.
@@ -993,7 +990,7 @@ func (bc *Blockchain) GetBlock(hash common.Hash, full bool) (*block.Block, *type
 	}
 	if full {
 		for _, tx := range block.Transactions {
-			stx, _, err := bc.dao.GetTransaction(tx.Hash())
+			stx, _, _, err := bc.dao.GetTransaction(tx.Hash())
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1513,7 +1510,7 @@ func (bc *Blockchain) GetLogs(filter *filters.LogFilter) ([]*types.Log, error) {
 			return nil, err
 		}
 		for _, tx := range block.Transactions {
-			appExec, err := bc.GetReceipt(tx.Hash())
+			_, appExec, _, err := bc.GetTransaction(tx.Hash())
 			if err != nil {
 				return nil, err
 			}
