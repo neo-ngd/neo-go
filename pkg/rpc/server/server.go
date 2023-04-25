@@ -1203,11 +1203,6 @@ func (s *Server) eth_feeHistory(_ request.Params) (interface{}, *response.Error)
 	if err != nil {
 		return nil, response.NewInternalServerError("can't create fee history", err)
 	}
-	b, err := json.Marshal(fh)
-	if err != nil {
-		return nil, response.NewInternalServerError("cann't marshal", err)
-	}
-	fmt.Println(string(b))
 	return fh, nil
 }
 
