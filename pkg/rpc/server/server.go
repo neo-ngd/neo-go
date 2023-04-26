@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -144,6 +145,7 @@ var rpcHandlers = map[string]func(*Server, request.Params) (interface{}, *respon
 	"calculategas":         (*Server).calculateGas,
 	"findstates":           (*Server).findStates,
 	"getbestblockhash":     (*Server).getBestBlockHash,
+	"getblock":             (*Server).getBlock,
 	"getblockcount":        (*Server).getBlockCount,
 	"getblockhash":         (*Server).getBlockHash,
 	"getblockheader":       (*Server).getBlockHeader,
@@ -845,17 +847,12 @@ func (s *Server) eth_sendRawTransaction(params request.Params) (interface{}, *re
 	if err != nil {
 		return nil, response.NewInvalidParamsError(fmt.Sprintf("invalid hex: %s", err), err)
 	}
-	tx := new(types.Transaction)
-	err = tx.UnmarshalBinary(rawTx)
+	etx, err := transaction.NewEthTxFromBytes(rawTx)
 	if err != nil {
 		return nil, response.NewInvalidParamsError("can't unmarshal raw transaction", err)
 	}
-	etx, err := transaction.NewEthTx(tx)
-	if err != nil {
-		return nil, response.NewInvalidParamsError("can't derive transaction", err)
-	}
-	t := transaction.NewTx(etx)
-	return getRelayResult(s.coreServer.RelayTxn(t), t.Hash())
+	tx := transaction.NewTx(etx)
+	return getRelayResult(s.coreServer.RelayTxn(tx), tx.Hash())
 }
 
 func (s *Server) eth_call(params request.Params) (interface{}, *response.Error) {
@@ -990,7 +987,7 @@ func (s *Server) eth_getBlockByHash(params request.Params) (interface{}, *respon
 		}
 		full = f
 	}
-	return s.getBlock(hash, full)
+	return s.eth_getBlock(hash, full)
 }
 
 func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *response.Error) {
@@ -1019,10 +1016,10 @@ func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *resp
 			return nil, response.NewInvalidParamsError(fmt.Sprintf("%s", err), err)
 		}
 	}
-	return s.getBlock(hash, full)
+	return s.eth_getBlock(hash, full)
 }
 
-func (s *Server) getBlock(hash common.Hash, full bool) (*result.Block, *response.Error) {
+func (s *Server) eth_getBlock(hash common.Hash, full bool) (*result.Block, *response.Error) {
 	block, receipt, err := s.chain.GetBlock(hash, true)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
@@ -1211,6 +1208,46 @@ func (s *Server) txpool_content(_ request.Params) (interface{}, *response.Error)
 
 func (s *Server) getBestBlockHash(_ request.Params) (interface{}, *response.Error) {
 	return s.chain.CurrentBlockHash().String(), nil
+}
+
+func (s *Server) getBlock(params request.Params) (interface{}, *response.Error) {
+	if len(params) < 1 {
+		return nil, response.ErrInvalidParams
+	}
+	var hash common.Hash
+	height, err := s.blockHeightFromParam(&params[0])
+	if err != nil {
+		hash, err = s.blockHashFromParam(&params[0])
+		if err != nil {
+			return nil, response.NewInvalidParamsError("can't parse height or hash", err)
+		}
+	} else {
+		hash = s.chain.GetHeaderHash(height)
+	}
+	raw := false
+	if len(params) > 1 {
+		r, e := params[1].GetBoolean()
+		if err != nil {
+			return nil, response.NewInvalidParamsError("can't parse bool", e)
+		}
+		raw = r
+	}
+	block, _, e := s.chain.GetBlock(hash, true)
+	if e != nil {
+		if errors.Is(err, storage.ErrKeyNotFound) {
+			return nil, nil
+		}
+		return nil, response.NewInternalServerError(fmt.Sprintf("Problem locating block with hash: %s", hash), err)
+	}
+	if raw {
+		b, e := io.ToByteArray(block)
+		if e != nil {
+			return nil, response.NewInternalServerError("can't encode block", e)
+		}
+		return hex.EncodeToString(b), nil
+	} else {
+		return block, nil
+	}
 }
 
 func (s *Server) getBlockCount(_ request.Params) (interface{}, *response.Error) {
@@ -1680,7 +1717,7 @@ func (s *Server) getrawtransaction(reqParams request.Params) (interface{}, *resp
 	if err != nil {
 		return nil, response.NewInternalServerError(fmt.Sprintf("failed encode tx: %s", err), err)
 	}
-	return b, nil
+	return hexutil.Bytes(b), nil
 }
 
 func (s *Server) getTransactionHeight(ps request.Params) (interface{}, *response.Error) {

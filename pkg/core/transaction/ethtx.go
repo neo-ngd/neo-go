@@ -3,7 +3,6 @@ package transaction
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -28,7 +27,7 @@ func NewEthTx(tx *types.Transaction) (*EthTx, error) {
 		Transaction: *tx,
 	}
 	var err error
-	t.ChainID, t.Sender, err = deriveSigned(tx)
+	t.ChainID, t.Sender, err = t.deriveSigned()
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +74,7 @@ func (t *EthTx) IsValid() error {
 
 func (t *EthTx) Verify(chainId uint64) (err error) {
 	if t.ChainID == 0 && t.Sender == (common.Address{}) {
-		t.ChainID, t.Sender, err = deriveSigned(&t.Transaction)
+		t.ChainID, t.Sender, err = t.deriveSigned()
 		if err != nil {
 			return
 		}
@@ -86,17 +85,8 @@ func (t *EthTx) Verify(chainId uint64) (err error) {
 	return nil
 }
 
-func (t *EthTx) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &t.Transaction)
-}
-
-func (t *EthTx) DecodeRLP(s *rlp.Stream) error {
-	return s.Decode(&t.Transaction)
-}
-
 func (t *EthTx) EncodeBinary(w *nio.BinWriter) {
-	err := rlp.Encode(w, &t.Transaction)
-	w.Err = err
+	w.Err = rlp.Encode(w, &t.Transaction)
 }
 
 func (t *EthTx) DecodeBinary(r *nio.BinReader) {
@@ -108,7 +98,7 @@ func (t *EthTx) DecodeBinary(r *nio.BinReader) {
 	if err != nil {
 		return
 	}
-	t.ChainID, t.Sender, err = deriveSigned(&t.Transaction)
+	t.ChainID, t.Sender, err = t.deriveSigned()
 	if err != nil {
 		return
 	}
@@ -200,23 +190,23 @@ func (t *EthTx) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func deriveSigned(t *types.Transaction) (chainId uint64, sender common.Address, err error) {
-	bigChainId := t.ChainId()
+func (t *EthTx) deriveSigned() (chainId uint64, sender common.Address, err error) {
+	bigChainId := t.Transaction.ChainId()
 	if !bigChainId.IsUint64() {
 		err = errors.New("ChainId is not uint64")
 		return
 	}
 	chainId = bigChainId.Uint64()
-	sender, err = deriveSender(t, chainId)
+	sender, err = t.deriveSender(chainId)
 	if err != nil {
 		return
 	}
 	return
 }
 
-func deriveSender(t *types.Transaction, chainId uint64) (common.Address, error) {
+func (t *EthTx) deriveSender(chainId uint64) (common.Address, error) {
 	signer := types.NewLondonSigner(big.NewInt(int64(chainId)))
-	return signer.Sender(t)
+	return signer.Sender(&t.Transaction)
 }
 
 type EthTxJson struct {

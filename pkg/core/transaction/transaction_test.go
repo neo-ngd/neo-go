@@ -20,8 +20,8 @@ func TestSize(t *testing.T) {
 		Data:  []byte{},
 	}
 	d, _ := nio.ToByteArray(tx)
-	assert.Equal(t, 120, len(d))
-	assert.Equal(t, 120, tx.Size())
+	assert.Equal(t, 42, len(d))
+	assert.Equal(t, 42, tx.Size())
 }
 
 func TestEthTxDecode(t *testing.T) {

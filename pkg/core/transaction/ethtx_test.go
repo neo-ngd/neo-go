@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/neo-ngd/neo-go/pkg/io"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,10 +14,9 @@ func TestEncodeRLP(t *testing.T) {
 	s := "f868800182d6d8946cb3e9d55dc87d4586bd2e558a1ee46a94e300b4880de0b6b3a764000080818da0ccd99c35f99317a094d99a8b677acb495dda3402e8aa45f91c524dea9aeb4c7ba02e5fffeedca5c7e4bbc7f36f16e94d1f85daf0ed0cd036187aa9c564708ce220"
 	b, err := hex.DecodeString(s)
 	assert.NoError(t, err)
-	tx := &EthTx{}
-	err = rlp.DecodeBytes(b, tx)
+	etx, err := NewEthTxFromBytes(b)
 	assert.NoError(t, err)
-	b, err = rlp.EncodeToBytes(tx)
+	b, err = io.ToByteArray(etx)
 	assert.NoError(t, err)
 	assert.Equal(t, s, hex.EncodeToString(b))
 }
@@ -40,6 +39,39 @@ func TestDynamicTx(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, tt.Hash(), tx.Hash())
 }
+
+func TestMetaMask(t *testing.T) {
+	s := "02f878832d5311308502540be4008502540be40083018f9c9456611d855eddfc391c35893e0d4f5dd787dfc01b88016345785d8a000080c080a00962e3ab0ae9dd7a21693c641e8e603a0f02f690c643f109b4430e43a96a547fa019da5ae39136d7af2c356edef2afbdac75cce39c86b71adb81f06267158e06de"
+	b, err := hex.DecodeString(s)
+	assert.NoError(t, err)
+	tx := &types.Transaction{}
+	err = tx.UnmarshalBinary(b)
+	assert.NoError(t, err)
+	assert.Equal(t, types.DynamicFeeTxType, int(tx.Type()))
+	etx, err := NewEthTx(tx)
+	t.Log(etx.Hash())
+	assert.NoError(t, err)
+	b, err = json.Marshal(etx)
+	assert.NoError(t, err)
+	t.Log(string(b))
+	tt := NewTx(etx)
+	assert.NoError(t, err)
+	assert.Equal(t, tt.Hash(), tx.Hash())
+	b1, err := io.ToByteArray(etx)
+	assert.NoError(t, err)
+	// assert.Equal(t, s, hex.EncodeToString(b))
+	err = io.FromByteArray(etx, b1)
+	assert.NoError(t, err)
+	b2, err := io.ToByteArray(etx)
+	assert.NoError(t, err)
+	t.Log(hex.EncodeToString(b1))
+	assert.Equal(t, hex.EncodeToString(b1), hex.EncodeToString(b2))
+	err = new(types.Transaction).UnmarshalBinary(b1)
+	assert.NoError(t, err)
+}
+
+//02f878832d5311308502540be4008502540be40083018f9c9456611d855eddfc391c35893e0d4f5dd787dfc01b88016345785d8a000080c080a00962e3ab0ae9dd7a21693c641e8e603a0f02f690c643f109b4430e43a96a547fa019da5ae39136d7af2c356edef2afbdac75cce39c86b71adb81f06267158e06de
+//b87b 02f878832d5311308502540be4008502540be40083018f9c9456611d855eddfc391c35893e0d4f5dd787dfc01b88016345785d8a000080c080a00962e3ab0ae9dd7a21693c641e8e603a0f02f690c643f109b4430e43a96a547fa019da5ae39136d7af2c356edef2afbdac75cce39c86b71adb81f06267158e06de
 
 func TestLegacyTx(t *testing.T) {
 	s := "f86e808502540be400809455decb32ef6f3a76cb9b56f4c8c38ad572b3d3968a152d02c7e14af68000008082021ea0e042c68ea701552929e972f52205b960705704abb6a57a893b41d44935c6abf2a060b08ba9ee2c0089c699c6684bd996f214860fc898574c7be5078a76a57226f0"
