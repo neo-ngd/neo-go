@@ -48,8 +48,8 @@ type (
 )
 
 // NewBlock creates a new Block wrapper.
-func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, miner common.Address) Block {
-	res := Block{
+func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, miner common.Address, full bool) *Block {
+	res := &Block{
 		Header: b.Header,
 		BlockMetadata: BlockMetadata{
 			Miner:     miner,
@@ -62,7 +62,7 @@ func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, miner c
 			Transactions: make([]interface{}, len(b.Transactions)),
 		},
 	}
-	if b.Trimmed {
+	if b.Trimmed || !full {
 		for i, t := range b.Transactions {
 			res.Transactions[i] = t.Hash()
 		}

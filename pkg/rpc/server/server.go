@@ -846,13 +846,16 @@ func (s *Server) eth_sendRawTransaction(params request.Params) (interface{}, *re
 		return nil, response.NewInvalidParamsError(fmt.Sprintf("invalid hex: %s", err), err)
 	}
 	tx := new(types.Transaction)
-	tx.UnmarshalBinary(rawTx)
+	err = tx.UnmarshalBinary(rawTx)
+	if err != nil {
+		return nil, response.NewInvalidParamsError("can't unmarshal raw transaction", err)
+	}
 	etx, err := transaction.NewEthTx(tx)
 	if err != nil {
-		return nil, response.NewInvalidParamsError(fmt.Sprintf("can't parse eth transaction: %s", err), err)
+		return nil, response.NewInvalidParamsError("can't derive transaction", err)
 	}
 	t := transaction.NewTx(etx)
-	return getRelayResult(s.coreServer.RelayTxn(t), tx.Hash())
+	return getRelayResult(s.coreServer.RelayTxn(t), t.Hash())
 }
 
 func (s *Server) eth_call(params request.Params) (interface{}, *response.Error) {
@@ -987,22 +990,7 @@ func (s *Server) eth_getBlockByHash(params request.Params) (interface{}, *respon
 		}
 		full = f
 	}
-	block, receipt, err := s.chain.GetBlock(hash, full)
-	if err != nil {
-		if errors.Is(err, storage.ErrKeyNotFound) {
-			return nil, nil
-		}
-		return nil, response.NewInternalServerError(fmt.Sprintf("Problem locating block with hash: %s", hash), err)
-	}
-	sr, err := s.chain.GetStateModule().GetStateRoot(block.Index)
-	if err != nil {
-		return nil, response.NewInternalServerError("can't get state root", err)
-	}
-	validators, err := s.chain.GetValidators(block.Index)
-	if err != nil {
-		return nil, response.NewInternalServerError("can't get validators", err)
-	}
-	return result.NewBlock(block, receipt, sr, validators[block.PrimaryIndex].Address()), nil
+	return s.getBlock(hash, full)
 }
 
 func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *response.Error) {
@@ -1031,7 +1019,11 @@ func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *resp
 			return nil, response.NewInvalidParamsError(fmt.Sprintf("%s", err), err)
 		}
 	}
-	block, receipt, err := s.chain.GetBlock(hash, full)
+	return s.getBlock(hash, full)
+}
+
+func (s *Server) getBlock(hash common.Hash, full bool) (*result.Block, *response.Error) {
+	block, receipt, err := s.chain.GetBlock(hash, true)
 	if err != nil {
 		if errors.Is(err, storage.ErrKeyNotFound) {
 			return nil, nil
@@ -1046,7 +1038,7 @@ func (s *Server) eth_getBlockByNumber(params request.Params) (interface{}, *resp
 	if err != nil {
 		return nil, response.NewInternalServerError("can't get validators", err)
 	}
-	return result.NewBlock(block, receipt, sr, validators[block.PrimaryIndex].Address()), nil
+	return result.NewBlock(block, receipt, sr, validators[block.PrimaryIndex].Address(), full), nil
 }
 
 func (s *Server) eth_getTransactionByHash(params request.Params) (interface{}, *response.Error) {
