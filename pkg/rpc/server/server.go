@@ -1035,7 +1035,7 @@ func (s *Server) eth_getBlock(hash common.Hash, full bool) (*result.Block, *resp
 	if err != nil {
 		return nil, response.NewInternalServerError("can't get validators", err)
 	}
-	return result.NewBlock(block, receipt, sr, validators[block.PrimaryIndex].Address(), full), nil
+	return result.NewBlock(block, receipt, sr, validators[block.PrimaryIndex].Address(), full, s.chain.GetConfig()), nil
 }
 
 func (s *Server) eth_getTransactionByHash(params request.Params) (interface{}, *response.Error) {

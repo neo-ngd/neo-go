@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/neo-ngd/neo-go/pkg/config"
 	"github.com/neo-ngd/neo-go/pkg/core/block"
 	"github.com/neo-ngd/neo-go/pkg/core/state"
 	"github.com/neo-ngd/neo-go/pkg/io"
@@ -40,7 +41,7 @@ type (
 		Difficulty      hexutil.Uint   `json:"difficulty"`
 		TotalDifficulty hexutil.Uint   `json:"totalDifficulty"`
 		ExtraData       hexutil.Bytes  `json:"extraData"`
-		GasLimit        hexutil.Big    `json:"gasLimit"`
+		GasLimit        hexutil.Uint64 `json:"gasLimit"`
 		GasUsed         hexutil.Uint64 `json:"gasUsed"`
 		Uncles          []common.Hash  `json:"uncles"`
 		BaseFeePerGas   hexutil.Uint64 `json:"baseFeePerGas"`
@@ -48,7 +49,7 @@ type (
 )
 
 // NewBlock creates a new Block wrapper.
-func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, miner common.Address, full bool) *Block {
+func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, miner common.Address, full bool, cfg config.ProtocolConfiguration) *Block {
 	res := &Block{
 		Header: b.Header,
 		BlockMetadata: BlockMetadata{
@@ -56,6 +57,7 @@ func NewBlock(b *block.Block, receipt *types.Receipt, sr *state.MPTRoot, miner c
 			Size:      hexutil.Uint(io.GetVarSize(b)),
 			StateRoot: sr.Root,
 			GasUsed:   hexutil.Uint64(receipt.GasUsed),
+			GasLimit:  hexutil.Uint64(cfg.MaxBlockGas),
 			Uncles:    []common.Hash{},
 		},
 		transactionsObj: transactionsObj{
